@@ -1,4 +1,45 @@
 package com.example.URLShortener.entity;
 
-public class ShortURL {
+import com.example.URLShortener.entity.enums.ShortUrlStatus;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "short_urls")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ShortUrl {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 16)
+    private String shortCode;
+
+    @Column(nullable = false)
+    private String originUrl;
+
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ShortUrlStatus status;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 }

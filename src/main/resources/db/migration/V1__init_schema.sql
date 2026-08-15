@@ -36,7 +36,7 @@ CREATE TYPE short_url_status AS ENUM (
 CREATE TABLE short_urls (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     short_code VARCHAR(16) NOT NULL UNIQUE,
-    origin_url TEXT NOT NULL UNIQUE,
+    origin_url TEXT NOT NULL,
     owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status short_url_status NOT NULL DEFAULT 'ACTIVE',
     expires_at TIMESTAMP,

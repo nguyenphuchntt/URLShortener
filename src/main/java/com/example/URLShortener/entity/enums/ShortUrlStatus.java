@@ -1,6 +1,6 @@
 package com.example.URLShortener.entity.enums;
 
-public enum ShortURLStatus {
+public enum ShortUrlStatus {
     ACTIVE,
     DISABLED,
     DELETED
