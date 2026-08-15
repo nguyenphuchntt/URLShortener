@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #152033;
+  --color-muted: #61708a;
+  --color-paper: #f6f8fc;
+  --color-surface: #ffffff;
+  --color-line: #dfe5ee;
+  --color-signal: #315be7;
+  --color-signal-dark: #2549be;
+  --color-success: #067b72;
+  --color-warning: #a85d00;
+  --color-danger: #b42332;
+  --font-sans: "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:root { font-synthesis: none; text-rendering: optimizeLegibility; }
+* { box-sizing: border-box; }
+html { background: #f6f8fc; }
+body { min-width: 320px; margin: 0; background: #f6f8fc; color: #152033; }
+button, input, select { font: inherit; }
+button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+#root { min-height: 100dvh; }
+:focus-visible { outline: 3px solid rgba(49, 91, 231, 0.35); outline-offset: 2px; }
+::selection { background: rgba(49, 91, 231, 0.2); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
