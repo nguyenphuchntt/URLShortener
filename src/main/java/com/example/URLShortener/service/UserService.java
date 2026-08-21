@@ -10,5 +10,5 @@ public interface UserService {
 
     List<User> getAll();
 
-    void deleteById(Long id);
+    Boolean deleteById(Long id);
 }

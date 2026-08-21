@@ -1,0 +1,12 @@
+package com.example.URLShortener.entity.enums;
+
+public enum ErrorCode {
+    URL_NOT_FOUND,
+    URL_ALREADY_EXISTS,
+    INVALID_URL_FORMAT,
+    SHORT_CODE_TAKEN,
+    KEY_POOL_EXHAUSTED,
+    USER_NOT_FOUND,
+    UNAUTHORIZED,
+    RATE_LIMIT_EXCEEDED
+}
