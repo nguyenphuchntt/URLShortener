@@ -9,5 +9,5 @@ public class CreateShortUrlRequest {
 
     @NotBlank
     @URL
-    String originUrl;
+    private String originUrl;
 }

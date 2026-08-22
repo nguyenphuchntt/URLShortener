@@ -6,10 +6,10 @@ import lombok.Data;
 @Data
 public class UserResponse {
 
-    String username;
+    private String username;
 
     @Email
-    String email;
+    private String email;
 
-    boolean enabled;
+    private boolean enabled;
 }
