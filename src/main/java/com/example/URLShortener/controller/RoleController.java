@@ -38,7 +38,6 @@ public class RoleController {
 
     private RoleResponse toResponse(Role role) {
         return RoleResponse.builder()
-                .id(role.getId())
                 .name(role.getName())
                 .build();
     }

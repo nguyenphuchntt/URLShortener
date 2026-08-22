@@ -5,9 +5,11 @@ import com.example.URLShortener.entity.enums.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.MethodNotAllowedException;
 
 import java.time.LocalDateTime;
 
@@ -26,6 +28,15 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("Validation failed");
         return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_URL_FORMAT, message, request);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        String message = String.format("Method %s is not supported by this endpoint. Detailed message: %s", ex.getMethod(), ex.getMessage());
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED,
+                ErrorCode.METHOD_NOT_ALLOWED,
+                message,
+                request);
     }
 
     @ExceptionHandler(Exception.class)
