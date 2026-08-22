@@ -10,9 +10,9 @@ public class ShortUrlResponse {
     String shortCode;
 
     @URL
-    String originUrl;
+    private String originUrl;
 
-    ShortUrlStatus status;
+    private ShortUrlStatus status;
 
-    LocalDateTime expiresAt;
+    private LocalDateTime expiresAt;
 }

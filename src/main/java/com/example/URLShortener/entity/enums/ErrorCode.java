@@ -1,6 +1,10 @@
 package com.example.URLShortener.entity.enums;
 
 public enum ErrorCode {
+    UNEXPECTED_ERROR,
+
+
+    ROLE_NOT_FOUND,
     URL_NOT_FOUND,
     URL_ALREADY_EXISTS,
     INVALID_URL_FORMAT,
