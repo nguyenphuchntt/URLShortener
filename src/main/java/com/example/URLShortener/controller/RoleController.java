@@ -3,42 +3,49 @@ package com.example.URLShortener.controller;
 import com.example.URLShortener.dto.request.CreateRoleRequest;
 import com.example.URLShortener.dto.response.RoleResponse;
 import com.example.URLShortener.entity.Role;
+import com.example.URLShortener.mapper.RoleMapper;
 import com.example.URLShortener.service.RoleService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
+@Validated
 @RestController
-@RequestMapping("/api/roles")
+@RequestMapping("/api/v1/roles")
 public class RoleController {
 
     private final RoleService roleService;
+    private final RoleMapper roleMapper;
 
-    public RoleController(RoleService roleService) {
+    public RoleController(
+            RoleService roleService,
+            RoleMapper roleMapper) {
         this.roleService = roleService;
+        this.roleMapper = roleMapper;
     }
 
     @GetMapping("/{name}")
-    public ResponseEntity<RoleResponse> getByName(@PathVariable String name) {
+    public ResponseEntity<RoleResponse> getByName(
+            @PathVariable
+            @NotBlank
+            @NotNull
+            @Size(min = 2, max = 10)
+            @Pattern(regexp = "^[a-zA-Z0-9_-]+$")
+            String name) {
+
         Role role = roleService.getByName(name);
-        return ResponseEntity.ok(toResponse(role));
+        return ResponseEntity.ok(roleMapper.toResponse(role));
     }
 
     @PostMapping
     public ResponseEntity<RoleResponse> create(@Valid @RequestBody CreateRoleRequest request) {
         Role role = roleService.create(request.getName());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(role));
-    }
-
-    private RoleResponse toResponse(Role role) {
-        return RoleResponse.builder()
-                .name(role.getName())
-                .build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(roleMapper.toResponse(role));
     }
 }

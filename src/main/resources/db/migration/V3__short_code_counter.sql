@@ -1,0 +1,5 @@
+CREATE SEQUENCE short_code_counter
+    AS BIGINT
+    START WITH 916132832
+    INCREMENT BY 1
+    NO CYCLE;

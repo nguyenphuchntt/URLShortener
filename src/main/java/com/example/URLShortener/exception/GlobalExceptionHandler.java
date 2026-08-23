@@ -3,15 +3,18 @@ package com.example.URLShortener.exception;
 import com.example.URLShortener.dto.response.ErrorResponse;
 import com.example.URLShortener.entity.enums.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.MethodNotAllowedException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -27,7 +30,36 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("Validation failed");
-        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_URL_FORMAT, message, request);
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_PARAMETER_FORMAT, message, request);
+    }
+
+    public ResponseEntity<ErrorResponse> handleRoleAlreadyExists(RoleAlreadyExistsException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.ROLE_ALREADY_EXISTS,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(
+            HandlerMethodValidationException ex,
+            HttpServletRequest request) {
+
+        String message = ex.getParameterValidationResults()
+                .stream()
+                .flatMap(result -> result.getResolvableErrors().stream())
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.INVALID_PARAMETER_FORMAT,
+                message,
+                request
+        );
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

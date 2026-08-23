@@ -3,6 +3,7 @@ package com.example.URLShortener.service.impl;
 import com.example.URLShortener.entity.Role;
 import com.example.URLShortener.entity.enums.ErrorCode;
 import com.example.URLShortener.exception.ResourceNotFoundException;
+import com.example.URLShortener.exception.RoleAlreadyExistsException;
 import com.example.URLShortener.repository.RoleRepository;
 import com.example.URLShortener.service.RoleService;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,15 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public Role create(String name) {
-        return roleRepository.save(Role.builder().name(name).build());
+        if (roleRepository.existsByName(name)) {
+            throw new RoleAlreadyExistsException(
+                    String.format("Role '%s' already exists", name)
+            );
+        }
+        Role role = Role.builder()
+                .name(name)
+                .build();
+
+        return roleRepository.save(role);
     }
 }
