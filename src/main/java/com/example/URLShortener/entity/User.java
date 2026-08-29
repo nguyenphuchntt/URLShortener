@@ -33,6 +33,10 @@ public class User {
     @Column(nullable = false)
     private boolean enabled;
 
+    @ManyToOne
+    @JoinColumn(name = "id", nullable = false)
+    private Role role;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

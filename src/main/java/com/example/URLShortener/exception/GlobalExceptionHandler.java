@@ -6,10 +6,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
@@ -33,10 +35,40 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_PARAMETER_FORMAT, message, request);
     }
 
+    @ExceptionHandler(RoleAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleRoleAlreadyExists(RoleAlreadyExistsException ex, HttpServletRequest request) {
         return buildResponse(
                 HttpStatus.CONFLICT,
                 ErrorCode.ROLE_ALREADY_EXISTS,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUsernameNotFound(UsernameNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.UNAUTHORIZED,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.UNAUTHORIZED,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    public ResponseEntity<ErrorResponse> handleForbidden(HttpClientErrorException.Forbidden ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                ErrorCode.FORBIDDEN,
                 ex.getMessage(),
                 request
         );
