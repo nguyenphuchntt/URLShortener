@@ -3,6 +3,7 @@ package com.example.URLShortener.exception;
 import com.example.URLShortener.dto.response.ErrorResponse;
 import com.example.URLShortener.entity.enums.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,26 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex, HttpServletRequest request) {
         return buildResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ShortCodeAlreadyUsed.class)
+    public ResponseEntity<ErrorResponse> handleShortCodeUsed(ShortCodeAlreadyUsed ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.SHORT_CODE_TAKEN,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(NotImplementedException.class)
+    public ResponseEntity<ErrorResponse> handleNotImplementedException(NotImplementedException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.NOT_IMPLEMENTED,
+                ErrorCode.NOT_IMPLEMENTED,
+                ex.getMessage(),
+                request
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

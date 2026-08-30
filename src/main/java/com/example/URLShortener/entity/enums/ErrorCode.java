@@ -2,6 +2,7 @@ package com.example.URLShortener.entity.enums;
 
 public enum ErrorCode {
     UNEXPECTED_ERROR,
+    NOT_IMPLEMENTED,
 
     METHOD_NOT_ALLOWED,
     ROLE_NOT_FOUND,

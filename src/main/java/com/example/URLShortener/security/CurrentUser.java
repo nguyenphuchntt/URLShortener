@@ -1,6 +1,9 @@
 package com.example.URLShortener.security;
 
+import com.example.URLShortener.entity.User;
 import com.example.URLShortener.exception.UnauthorizedException;
+import com.example.URLShortener.repository.UserRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -10,10 +13,20 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 @Component
+@AllArgsConstructor
 public class CurrentUser {
+
+    private final UserRepository userRepository;
 
     public Long requireUserId() {
         return currentUserId().orElseThrow(() -> new UnauthorizedException("User is not authenticated"));
+    }
+
+    public User requireUser() {
+        Long userId = requireUserId();
+        System.out.println(userId);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("User is not authenticated"));
     }
 
     public Optional<Long> currentUserId() {

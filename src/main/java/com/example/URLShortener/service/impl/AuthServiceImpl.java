@@ -21,6 +21,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -48,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(PasswordConfig.passwordEncoder().encode(request.getPassword()))
+                .enabled(true)
                 .role(userRole)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -67,7 +69,8 @@ public class AuthServiceImpl implements AuthService {
                 .createdAt(LocalDateTime.now())
                 .expiresAt(jwtTokenProvider.getExpireTime(refreshToken))
                 .build();
-        refreshTokenRepository.save(token);
+
+        token = refreshTokenRepository.save(token);
 
         return RegisterResponse.builder()
                 .username(newUser.getUsername())
