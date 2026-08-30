@@ -34,7 +34,7 @@ public class User {
     private boolean enabled;
 
     @ManyToOne
-    @JoinColumn(name = "id", nullable = false)
+    @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
     @CreationTimestamp

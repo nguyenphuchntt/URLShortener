@@ -24,7 +24,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     }
 
     public ShortUrl create(CreateShortUrlRequest request) {
-        String originUrl = request.getOriginUrl().trim();
+        String originUrl = request.getOriginUrl();
         String shortCode = shortCodeGenerator.next();
 
         ShortUrl newShortUrl = ShortUrl.builder()

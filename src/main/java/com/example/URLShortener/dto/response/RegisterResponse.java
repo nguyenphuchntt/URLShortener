@@ -3,11 +3,11 @@ package com.example.URLShortener.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 @Builder
-public class JwtResponse {
+public class RegisterResponse {
+    private String username;
+    private Long userId;
 
     private String accessToken;
     private String refreshToken;

@@ -1,5 +1,8 @@
 package com.example.URLShortener.logic;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class Base62Encoder {
 
     private static final String ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

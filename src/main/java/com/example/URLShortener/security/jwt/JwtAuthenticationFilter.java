@@ -1,5 +1,8 @@
 package com.example.URLShortener.security.jwt;
 
+import com.example.URLShortener.entity.User;
+import com.example.URLShortener.exception.UnauthorizedException;
+import com.example.URLShortener.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +20,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -26,9 +30,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
 
         if (token != null && jwtTokenProvider.validateToken(token)) {
-            String username = jwtTokenProvider.getUsername(token);
+            Long userId = jwtTokenProvider.getUserId(token);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UnauthorizedException("User not found"));
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    username,
+                    user.getUsername(),
                     null,
                     jwtTokenProvider.getAuthorities(token)
             );

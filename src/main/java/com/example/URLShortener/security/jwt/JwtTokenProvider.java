@@ -13,6 +13,9 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -87,6 +90,17 @@ public class JwtTokenProvider {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    public LocalDateTime getExpireTime(String token) {
+        return getClaims(token).getExpiration()
+                .toInstant()
+                .atZone(ZoneOffset.UTC)
+                .toLocalDateTime();
+    }
+
+    public String getTokenType(String token) {
+        return getClaims(token).get("type", String.class);
     }
 
     private Claims getClaims(String token) {

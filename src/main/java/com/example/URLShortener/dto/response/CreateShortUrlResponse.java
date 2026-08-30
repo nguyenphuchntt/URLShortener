@@ -18,7 +18,7 @@ public class CreateShortUrlResponse {
     private String originUrl;
 
     @NotBlank
-    private String shortUrl;
+    private String shortCode;
 
     private LocalDateTime expiresAt;
 }

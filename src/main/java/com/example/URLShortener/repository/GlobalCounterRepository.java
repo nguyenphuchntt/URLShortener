@@ -1,15 +1,21 @@
 package com.example.URLShortener.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface GlobalCounterRepository extends JpaRepository<Object, Long> {
+@RequiredArgsConstructor
+public class GlobalCounterRepository {
 
-    @Query(
-            value = "SELECT nextval('short_code_counter')",
-            nativeQuery = true
-    )
-    Long getNextValue();
+    private final EntityManager entityManager;
+
+    public Long getNextValue() {
+        Number result = (Number) entityManager
+                .createNativeQuery(
+                        "SELECT nextval('short_code_counter')"
+                )
+                .getSingleResult();
+        return result.longValue();
+    }
 }
