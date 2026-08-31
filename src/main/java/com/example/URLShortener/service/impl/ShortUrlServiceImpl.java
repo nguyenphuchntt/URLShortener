@@ -44,13 +44,15 @@ public class ShortUrlServiceImpl implements ShortUrlService {
             if (shortUrlRepository.existsByShortCode(request.getCustomShortCode())) {
                 throw new ShortCodeAlreadyUsed("Short code was used");
             } else {
+                LocalDateTime now = LocalDateTime.now();
                 ShortUrl newShortUrl = ShortUrl.builder()
                         .ownerId(currentUser.requireUserId())
                         .shortCode(request.getCustomShortCode())
                         .originUrl(request.getOriginUrl())
                         .status(ShortUrlStatus.ACTIVE)
                         .expiresAt(request.getExpiresAt())
-                        .createdAt(LocalDateTime.now())
+                        .createdAt(now)
+                        .updatedAt(now)
                         .build();
 
                 newShortUrl = shortUrlRepository.save(newShortUrl);
@@ -70,6 +72,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                 .status(ShortUrlStatus.ACTIVE)
                 .expiresAt(request.getExpiresAt())
                 .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build();
 
         newShortUrl = shortUrlRepository.save(newShortUrl);
