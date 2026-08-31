@@ -18,7 +18,8 @@ import com.example.URLShortener.service.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.NotImplementedException;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -29,6 +30,8 @@ import java.util.Optional;
 @AllArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
+
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final RoleRepository roleRepository;
@@ -37,6 +40,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
+        log.info("Registration attempt for username {}", request.getUsername());
         Role userRole = roleRepository.findByName("USER").orElseThrow(() -> new NotImplementedException("User role not found"));
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistsException("Username already existed");
@@ -71,6 +75,8 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         token = refreshTokenRepository.save(token);
+
+        log.info("Created an user with username {}", newUser.getUsername());
 
         return RegisterResponse.builder()
                 .username(newUser.getUsername())

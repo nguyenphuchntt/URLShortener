@@ -11,16 +11,19 @@ import com.example.URLShortener.repository.ShortUrlRepository;
 import com.example.URLShortener.security.CurrentUser;
 import com.example.URLShortener.service.ShortUrlService;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @Service
 public class ShortUrlServiceImpl implements ShortUrlService {
+
+    private static final Logger log = LoggerFactory.getLogger(ShortUrlServiceImpl.class);
 
     private final ShortCodeGenerator shortCodeGenerator;
     private final ShortUrlRepository shortUrlRepository;
@@ -53,6 +56,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                         .build();
 
                 newShortUrl = shortUrlRepository.save(newShortUrl);
+                log.info("Created new shortCode {} for origin URL {}, customized", newShortUrl.getShortCode(), newShortUrl.getOriginUrl());
                 return newShortUrl;
             }
         }
@@ -73,7 +77,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                 .build();
 
         newShortUrl = shortUrlRepository.save(newShortUrl);
-
+        log.info("Created new shortCode {} for origin URL {}", newShortUrl.getShortCode(), newShortUrl.getOriginUrl());
         return newShortUrl;
     }
 
@@ -100,6 +104,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
         } else {
             url.setStatus(ShortUrlStatus.DELETED);
             url = shortUrlRepository.save(url);
+            log.info("Soft deleted short code {} of original URL {}", url.getShortCode(), url.getOriginUrl());
         }
         return url;
     }
