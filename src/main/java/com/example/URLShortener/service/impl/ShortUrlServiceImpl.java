@@ -81,9 +81,8 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     }
 
     @Override
-    public ShortUrl getByCode(String shortCode) {
-        return shortUrlRepository.findByShortCode(shortCode)
-                .orElse(null);
+    public Optional<ShortUrl> getByCode(String shortCode) {
+        return shortUrlRepository.findByShortCode(shortCode);
     }
 
     @Override
