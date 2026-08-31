@@ -32,8 +32,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtTokenProvider.validateToken(token)) {
             Long userId = jwtTokenProvider.getUserId(token);
 
-            // Do NOT lookup user here - let service layer handle it if needed
-            // Just set the userId directly as principal for service to handle owner lookup
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userId, // principal is now Long userId
                     null,

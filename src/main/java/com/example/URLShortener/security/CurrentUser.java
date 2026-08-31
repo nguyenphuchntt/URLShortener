@@ -22,13 +22,6 @@ public class CurrentUser {
         return currentUserId().orElseThrow(() -> new UnauthorizedException("User is not authenticated"));
     }
 
-    public User requireUser() {
-        Long userId = requireUserId();
-        System.out.println(userId);
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UnauthorizedException("User is not authenticated"));
-    }
-
     public Optional<Long> currentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (!isAuthenticated(authentication)) {
