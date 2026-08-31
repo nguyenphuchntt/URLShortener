@@ -1,0 +1,9 @@
+logging:
+  level:
+    com.example.URLShortener: INFO
+    org.springframework: INFO
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%ex{full}"
+  file:
+    name: logs/urlshortener.log

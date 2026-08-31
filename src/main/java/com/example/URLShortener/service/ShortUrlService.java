@@ -15,7 +15,7 @@ public interface ShortUrlService {
 
     ShortUrl create(CreateShortUrlRequest request);
 
-    Optional<ShortUrl> getByCode(String shortCode);
+    Optional<ShortUrl> getByCodeForRedirect(String shortCode);
 
     ShortUrl delete(String shortCode);
 

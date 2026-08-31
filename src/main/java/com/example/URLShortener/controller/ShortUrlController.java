@@ -66,7 +66,7 @@ public class ShortUrlController {
             @Pattern(regexp = "^[a-zA-Z0-9]+$")
             String shortCode) {
 
-        ShortUrl shortUrl = shortUrlService.getByCode(shortCode)
+        ShortUrl shortUrl = shortUrlService.getByCodeForRedirect(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
 
         return ResponseEntity

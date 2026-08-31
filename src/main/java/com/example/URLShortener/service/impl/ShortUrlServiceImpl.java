@@ -5,10 +5,7 @@ import com.example.URLShortener.dto.request.UpdateShortUrlRequest;
 import com.example.URLShortener.dto.response.ShortUrlResponse;
 import com.example.URLShortener.entity.ShortUrl;
 import com.example.URLShortener.entity.enums.ShortUrlStatus;
-import com.example.URLShortener.exception.ConflictException;
-import com.example.URLShortener.exception.ResourceNotFoundException;
-import com.example.URLShortener.exception.ShortCodeAlreadyUsed;
-import com.example.URLShortener.exception.UnauthorizedException;
+import com.example.URLShortener.exception.*;
 import com.example.URLShortener.logic.ShortCodeGenerator;
 import com.example.URLShortener.repository.ShortUrlRepository;
 import com.example.URLShortener.security.CurrentUser;
@@ -81,8 +78,13 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     }
 
     @Override
-    public Optional<ShortUrl> getByCode(String shortCode) {
-        return shortUrlRepository.findByShortCode(shortCode);
+    public Optional<ShortUrl> getByCodeForRedirect(String shortCode) {
+        ShortUrl shortUrl = shortUrlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
+        if (shortUrl.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new UrlExpiredException("Short code expired");
+        }
+        return Optional.of(shortUrl);
     }
 
     @Override

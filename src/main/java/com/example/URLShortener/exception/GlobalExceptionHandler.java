@@ -38,6 +38,16 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(UrlExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredShortCode(UrlExpiredException ex, HttpServletRequest request) {
+        return buildResponse(
+                ex.getStatus(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                request
+        );
+    }
+
     @ExceptionHandler(NotImplementedException.class)
     public ResponseEntity<ErrorResponse> handleNotImplementedException(NotImplementedException ex, HttpServletRequest request) {
         return buildResponse(

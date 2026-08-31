@@ -4,6 +4,8 @@ public enum ErrorCode {
     UNEXPECTED_ERROR,
     NOT_IMPLEMENTED,
 
+    URL_EXPIRED,
+
     METHOD_NOT_ALLOWED,
     RESOURCE_NOT_FOUND,
     URL_NOT_FOUND,
