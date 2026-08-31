@@ -1,10 +1,13 @@
 package com.example.URLShortener.logic;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CounterPermutation {
 
+    private static final Logger log = LoggerFactory.getLogger(CounterPermutation.class);
     private static final int ROUNDS = 5;
 
     private static final int[] ROUND_KEYS = {
@@ -16,12 +19,12 @@ public class CounterPermutation {
     };
 
     public long permute(long counter) {
+        log.debug("Permuting counter value: {}", counter);
         if (counter < 0 || counter > 0xFFFFFFFFL) {
             throw new IllegalArgumentException("Counter must be in range 0..2^32-1");
         }
 
         int value = (int) counter;
-
         int left = (value >>> 16) & 0xFFFF;
         int right = value & 0xFFFF;
 
@@ -33,39 +36,36 @@ public class CounterPermutation {
         }
 
         int result = (left << 16) | right;
-
-        return Integer.toUnsignedLong(result);
+        long permuted = Integer.toUnsignedLong(result);
+        log.debug("Counter permutation completed");
+        return permuted;
     }
 
     public long inverse(long value) {
+        log.debug("Reversing counter permutation");
         if (value < 0 || value > 0xFFFFFFFFL) {
             throw new IllegalArgumentException("Value must be in range 0..2^32-1");
         }
 
         int intValue = (int) value;
-
         int left = (intValue >>> 16) & 0xFFFF;
         int right = intValue & 0xFFFF;
 
         for (int i = ROUNDS - 1; i >= 0; i--) {
             int oldRight = left;
             int oldLeft = right ^ roundFunction(left, ROUND_KEYS[i]);
-
             left = oldLeft & 0xFFFF;
             right = oldRight & 0xFFFF;
         }
 
         int result = (left << 16) | right;
-
         return Integer.toUnsignedLong(result);
     }
 
     private int roundFunction(int right, int key) {
         int x = (right ^ key) & 0xFFFF;
-
         x *= 0x9E37;
         x ^= x >>> 8;
-
         return x & 0xFFFF;
     }
 }

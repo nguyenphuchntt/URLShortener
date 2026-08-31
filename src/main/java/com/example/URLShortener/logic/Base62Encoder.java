@@ -1,14 +1,18 @@
 package com.example.URLShortener.logic;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class Base62Encoder {
 
+    private static final Logger log = LoggerFactory.getLogger(Base62Encoder.class);
     private static final String ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private final char[] alphabet = ALPHABET.toCharArray();
 
     public String encode(long value) {
+        log.debug("Encoding value to Base62: {}", value);
         if (value < 0) {
             throw new IllegalArgumentException("Negative value not supported");
         }
@@ -21,10 +25,13 @@ public class Base62Encoder {
             result.append(alphabet[remainder]);
             value /= 62;
         }
-        return result.reverse().toString();
+        String encoded = result.reverse().toString();
+        log.debug("Base62 encoding completed with length {}", encoded.length());
+        return encoded;
     }
 
     public long decode(String value) {
+        log.debug("Decoding Base62 value with length {}", value == null ? null : value.length());
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException("Value must not be empty");
         }
