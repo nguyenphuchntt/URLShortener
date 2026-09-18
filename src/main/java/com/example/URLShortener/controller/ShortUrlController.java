@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.time.LocalDateTime;
 
 @RestController
@@ -59,22 +58,6 @@ public class ShortUrlController {
         );
     }
 
-    @GetMapping("/{shortCode}")
-    public ResponseEntity<Void> redirect(
-            @PathVariable("shortCode")
-            @Size(max = 16)
-            @Pattern(regexp = "^[a-zA-Z0-9]+$")
-            String shortCode) {
-
-        ShortUrl shortUrl = shortUrlService.getByCodeForRedirect(shortCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
-
-        return ResponseEntity
-                .status(HttpStatus.FOUND) // 302
-                .location(URI.create(shortUrl.getOriginUrl()))
-                .build();
-    }
-
     @GetMapping("/me")
     public ResponseEntity<Page<ShortUrlResponse>> getMyUrls(Pageable pageable) {
         return ResponseEntity.status(HttpStatus.OK).body(
@@ -83,11 +66,9 @@ public class ShortUrlController {
     }
 
     @DeleteMapping("{shortCode}")
-    public ResponseEntity<ShortUrlResponse> deleteShortCode(
+    public ResponseEntity<Void> deleteShortCode(
             @PathVariable("shortCode") @Size(max = 16) @Pattern(regexp = "^[a-zA-Z0-9]+$") String shortCode) {
-        ShortUrl shortUrl = shortUrlService.getByCodeForRedirect(shortCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
-
+        shortUrlService.delete(shortCode);
         return ResponseEntity.noContent().build();
     }
 }

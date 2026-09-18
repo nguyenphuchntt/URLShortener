@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 public class RedirectFilter extends OncePerRequestFilter {
@@ -41,22 +42,19 @@ public class RedirectFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        // Cache HIT
-        var cached = urlCacheService.get(shortCode);
-        if (cached.isEmpty()) {
-            filterChain.doFilter(request, response);
-            return;
+        Optional<UrlCacheService.CachedUrl> cached = urlCacheService.get(shortCode);
+        if (cached.isPresent()) {
+            UrlCacheService.CachedUrl v = cached.get();
+            if (v.isExpired()) {
+                urlCacheService.evict(shortCode);
+            } else {
+                response.setStatus(HttpStatus.FOUND.value());
+                response.setHeader(HttpHeaders.LOCATION, v.originUrl());
+                response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+                return;
+            }
         }
-        var v = cached.get();
-        if (v.isExpired()) {
-            urlCacheService.evict(shortCode);
-            filterChain.doFilter(request, response);
-            return;
-        }
-        response.setStatus(HttpStatus.FOUND.value());
-        response.setHeader(HttpHeaders.LOCATION, v.originUrl());
-        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
-        return;
+        filterChain.doFilter(request, response);
     }
 
     private String extractShortCodeFromRequest(HttpServletRequest request) {
