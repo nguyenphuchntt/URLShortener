@@ -85,14 +85,9 @@ public class ShortUrlController {
     @DeleteMapping("{shortCode}")
     public ResponseEntity<ShortUrlResponse> deleteShortCode(
             @PathVariable("shortCode") @Size(max = 16) @Pattern(regexp = "^[a-zA-Z0-9]+$") String shortCode) {
-        ShortUrl url =shortUrlService.delete(shortCode);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(
-                ShortUrlResponse.builder()
-                        .shortCode(url.getShortCode())
-                        .status(url.getStatus())
-                        .updatedAt(url.getUpdatedAt())
-                        .expiresAt(url.getExpiresAt())
-                        .build()
-        );
+        ShortUrl shortUrl = shortUrlService.getByCodeForRedirect(shortCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
+
+        return ResponseEntity.noContent().build();
     }
 }

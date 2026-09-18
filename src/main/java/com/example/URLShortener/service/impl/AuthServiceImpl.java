@@ -94,6 +94,9 @@ public class AuthServiceImpl implements AuthService {
         if (!PasswordConfig.passwordEncoder().matches(request.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Invalid username or password");
         }
+        if (!user.isEnabled()) {
+            throw new UnauthorizedException("Account is disabled");
+        }
         String accessToken = jwtTokenProvider.generateAccessToken(
                 user.getId(),
                 user.getRole().getName()
@@ -136,6 +139,9 @@ public class AuthServiceImpl implements AuthService {
         Long userId = refToken.getUser().getId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
+        if (!user.isEnabled()) {
+            throw new UnauthorizedException("Account is disabled");
+        }
         String accessToken = jwtTokenProvider.generateAccessToken(
                 userId,
                 user.getRole().getName()

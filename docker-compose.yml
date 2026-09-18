@@ -18,6 +18,19 @@ services:
       retries: 10
       start_period: 10s
 
+  redis:
+    image: redis:7-alpine
+    container_name: urlshortener-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis-dev}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD:-redis-dev}\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   app:
     build:
       context: .
@@ -33,8 +46,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-urlshortener}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-urlshortener}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-urlshortener}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis-dev}
     ports:
       - "${APP_PORT:-8080}:8080"
 
 volumes:
   postgres-data:
+  redis-data:

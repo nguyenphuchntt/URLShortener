@@ -1,5 +1,6 @@
 package com.example.URLShortener.service.impl;
 
+import com.example.URLShortener.cache.UrlCacheService;
 import com.example.URLShortener.dto.request.CreateShortUrlRequest;
 import com.example.URLShortener.dto.request.UpdateShortUrlRequest;
 import com.example.URLShortener.dto.response.ShortUrlResponse;
@@ -17,7 +18,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 @Service
@@ -28,14 +31,17 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     private final ShortCodeGenerator shortCodeGenerator;
     private final ShortUrlRepository shortUrlRepository;
     private final CurrentUser currentUser;
+    private final UrlCacheService urlCacheService;
 
     ShortUrlServiceImpl (
             ShortUrlRepository shortUrlRepository,
             CurrentUser currentUser,
+            UrlCacheService urlCacheService,
             ShortCodeGenerator shortCodeGenerator) {
         this.shortCodeGenerator = shortCodeGenerator;
         this.shortUrlRepository = shortUrlRepository;
         this.currentUser = currentUser;
+        this.urlCacheService = urlCacheService;
     }
 
     @Transactional
@@ -83,11 +89,36 @@ public class ShortUrlServiceImpl implements ShortUrlService {
 
     @Override
     public Optional<ShortUrl> getByCodeForRedirect(String shortCode) {
+        // Cache HIT
+        Optional<UrlCacheService.CachedUrl> cachedUrl = urlCacheService.get(shortCode);
+        if (cachedUrl.isPresent()) {
+            UrlCacheService.CachedUrl c = cachedUrl.get();
+            if (c.isExpired()) {
+                urlCacheService.evict(shortCode);
+                throw new UrlExpiredException("Short code expired");
+            }
+            return Optional.of(
+                    ShortUrl.builder()
+                            .shortCode(shortCode)
+                            .originUrl(c.originUrl())
+                            .status(ShortUrlStatus.ACTIVE)
+                            .expiresAt(c.expiresAt() == null ? null : LocalDateTime.ofInstant(c.expiresAt(), ZoneOffset.UTC))
+                            .build()
+            );
+        }
+        // Cache MISS
         ShortUrl shortUrl = shortUrlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
-        if (shortUrl.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (shortUrl.getStatus() != ShortUrlStatus.ACTIVE) {
+            throw new ResourceNotFoundException("Short code is not active");
+        }
+        if (shortUrl.getExpiresAt() != null && !shortUrl.getExpiresAt().isAfter(LocalDateTime.now())) {
             throw new UrlExpiredException("Short code expired");
         }
+        Instant expiresAt = shortUrl.getExpiresAt() == null ?
+                null
+                : shortUrl.getExpiresAt().toInstant(ZoneOffset.UTC);
+        urlCacheService.put(shortCode, shortUrl.getOriginUrl(), expiresAt);
         return Optional.of(shortUrl);
     }
 
@@ -104,6 +135,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
         } else {
             url.setStatus(ShortUrlStatus.DELETED);
             url = shortUrlRepository.save(url);
+            urlCacheService.evict(url.getShortCode());
             log.info("Soft deleted short code {} of original URL {}", url.getShortCode(), url.getOriginUrl());
         }
         return url;
@@ -113,7 +145,8 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     @Transactional
     public Optional<ShortUrl> update(UpdateShortUrlRequest request) {
         final boolean[] modified = {false};
-        return shortUrlRepository.findByShortCode(request.getShortCode())
+        final String[] oldCode = {request.getShortCode()};
+        Optional<ShortUrl> result = shortUrlRepository.findByShortCode(request.getShortCode())
                 .filter(url -> url.getOwnerId().equals(currentUser.requireUserId())
                         && url.getStatus() != ShortUrlStatus.DELETED)
                 .map(url -> {
@@ -144,6 +177,13 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                     }
                     return shortUrlRepository.save(url);
                 });
+        if (result.isPresent()) {
+            urlCacheService.evict(oldCode[0]);
+            if (!oldCode[0].equals(request.getNewShortCode())) {
+                urlCacheService.evict(request.getNewShortCode());
+            }
+        }
+        return result;
     }
 
     @Override
