@@ -4,9 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -16,12 +14,6 @@ import java.io.IOException;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;
-
-    @Bean
-    public RateLimitFilter rateLimitFilter(
-            RateLimitService rateLimitService) {
-        return new RateLimitFilter(rateLimitService);
-    }
 
     @Override
     protected void doFilterInternal(
@@ -66,27 +58,27 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         if ("POST".equals(method)
-                && "/api/auth/login".equals(path)) {
+                && "/api/v1/auth/login".equals(path)) {
             return "login";
         }
 
         if ("POST".equals(method)
-                && "/api/auth/register".equals(path)) {
+                && "/api/v1/auth/register".equals(path)) {
             return "register";
         }
 
         if ("POST".equals(method)
-                && "/api/auth/forgot-password".equals(path)) {
+                && "/api/v1/auth/forgot-password".equals(path)) {
             return "forgot-password";
         }
 
         if ("POST".equals(method)
-                && "/api/auth/resend-verification".equals(path)) {
+                && "/api/v1/auth/resend-verification".equals(path)) {
             return "resend-verification";
         }
 
         if ("POST".equals(method)
-                && "/api/auth/otp-verify".equals(path)) {
+                && "/api/v1/auth/otp-verify".equals(path)) {
             return "otp-verify";
         }
 

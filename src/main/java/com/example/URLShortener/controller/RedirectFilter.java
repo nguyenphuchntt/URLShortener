@@ -1,34 +1,30 @@
 package com.example.URLShortener.controller;
 
 import com.example.URLShortener.cache.UrlCacheService;
-import com.example.URLShortener.service.ShortUrlService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@RequiredArgsConstructor
-@Configuration
+@Component
 public class RedirectFilter extends OncePerRequestFilter {
 
     private final UrlCacheService urlCacheService;
     private final String redirectPath;
 
-    @Bean
-    public RedirectFilter redirectFilter(UrlCacheService urlCacheService,
-                                         @Value("${short-code.redirect-path}") String redirectPath) {
-        return new RedirectFilter(urlCacheService, redirectPath);
+    public RedirectFilter(
+            UrlCacheService urlCacheService,
+            @Value("${short-code.redirect-path}") String redirectPath) {
+        this.urlCacheService = urlCacheService;
+        this.redirectPath = redirectPath;
     }
 
     @Override

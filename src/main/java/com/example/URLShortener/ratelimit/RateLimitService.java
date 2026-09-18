@@ -33,6 +33,9 @@ public class RateLimitService {
     }
 
     private RateLimitProperties.LimitConfig getLimitConfig (String endpointType) {
+        if (endpointType == null) {
+            return properties.getDefaultLimit();
+        }
         return switch (endpointType) {
             default -> properties.getDefaultLimit();
         };

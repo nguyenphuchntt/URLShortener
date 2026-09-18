@@ -104,17 +104,23 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = jwtTokenProvider.generateRefreshToken(
                 user.getId()
         );
-        Optional<RefreshToken> oldRefreshToken = refreshTokenRepository.findByUserId(user.getId());
-        if (oldRefreshToken.isPresent()) {
-            RefreshToken oldToken = oldRefreshToken.get();
-            refreshTokenRepository.delete(oldToken);
+
+        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUserId(user.getId());
+        RefreshToken token;
+        if (existingToken.isPresent()) {
+            token = existingToken.get();
+            token.setToken(refreshToken);
+            token.setExpiresAt(jwtTokenProvider.getExpireTime(refreshToken));
+            token.setRevokedAt(null);
+            token.setCreatedAt(LocalDateTime.now());
+        } else {
+            token = RefreshToken.builder()
+                    .token(refreshToken)
+                    .user(user)
+                    .createdAt(LocalDateTime.now())
+                    .expiresAt(jwtTokenProvider.getExpireTime(refreshToken))
+                    .build();
         }
-        RefreshToken token = RefreshToken.builder()
-                .token(refreshToken)
-                .user(user)
-                .createdAt(LocalDateTime.now())
-                .expiresAt(jwtTokenProvider.getExpireTime(refreshToken))
-                .build();
         refreshTokenRepository.save(token);
 
         return JwtResponse.builder()

@@ -22,6 +22,8 @@ RUN groupadd --system --gid 1000 app \
 WORKDIR /app
 ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8"
 
+RUN mkdir -p /app/logs && chown -R appuser:app /app
+
 COPY --from=builder /workspace/app.jar ./app.jar
 
 USER appuser
