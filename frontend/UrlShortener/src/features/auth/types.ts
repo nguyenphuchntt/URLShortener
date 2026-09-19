@@ -4,10 +4,11 @@ export interface User {
   email: string
   enabled: boolean
   createdAt: string
+  role?: string
 }
 
 export interface LoginRequest {
-  email: string
+  username: string
   password: string
 }
 

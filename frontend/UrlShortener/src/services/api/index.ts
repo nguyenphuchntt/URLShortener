@@ -1,3 +1,3 @@
-import { mockApi } from '@/services/mock'
+import { httpApi } from '@/services/http'
 
-export const api = mockApi
+export const api = httpApi
