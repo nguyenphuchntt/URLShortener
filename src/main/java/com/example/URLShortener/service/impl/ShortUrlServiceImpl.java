@@ -196,6 +196,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                             return ShortUrlResponse.builder()
                                     .originUrl(shortUrl.getOriginUrl())
                                     .shortCode(shortUrl.getShortCode())
+                                    .status(shortUrl.getStatus())
                                     .updatedAt(shortUrl.getUpdatedAt())
                                     .createdAt(shortUrl.getCreatedAt())
                                     .expiresAt(shortUrl.getExpiresAt())

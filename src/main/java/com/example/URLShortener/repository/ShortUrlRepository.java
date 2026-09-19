@@ -17,6 +17,8 @@ public interface ShortUrlRepository extends JpaRepository<ShortUrl, Long> {
     Optional<ShortUrl> findByShortCode(String shortCode);
     boolean existsByShortCode(String shortCode);
     Page<ShortUrl> findAllByOwnerId(Long ownerId, Pageable pageable);
+    List<ShortUrl> findAllByOwnerId(Long ownerId);
+    long countByOwnerIdAndStatus(Long ownerId, com.example.URLShortener.entity.enums.ShortUrlStatus status);
 
     @Query("""
     SELECT COUNT(s)

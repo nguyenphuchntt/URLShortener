@@ -35,11 +35,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: urlshortener:local
+    image: urlshortener-backend:local
     container_name: urlshortener-app
     restart: unless-stopped
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
@@ -51,6 +53,18 @@ services:
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis-dev}
     ports:
       - "${APP_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend/UrlShortener
+      dockerfile: Dockerfile
+    image: urlshortener-frontend:local
+    container_name: urlshortener-frontend
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
 
 volumes:
   postgres-data:

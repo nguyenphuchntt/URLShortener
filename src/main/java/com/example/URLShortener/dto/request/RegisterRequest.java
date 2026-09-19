@@ -11,6 +11,7 @@ public class RegisterRequest {
 
     @NotBlank
     @Size(min = 6, max = 50)
+    @Pattern(regexp = "^[A-Za-z][A-Za-z0-9_]{7,29}$")
     private String username;
 
     @NotBlank

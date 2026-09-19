@@ -1,6 +1,7 @@
 package com.example.URLShortener.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,7 +22,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(nullable = false, unique = true)
+    @Pattern(regexp = "^[A-Za-z][A-Za-z0-9_]{7,29}$")
     private String username;
 
     @Column(nullable = false, unique = true, length = 100)
