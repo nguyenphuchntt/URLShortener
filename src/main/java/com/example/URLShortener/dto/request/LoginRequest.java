@@ -10,7 +10,7 @@ import lombok.Data;
 public class LoginRequest {
 
     @NotBlank
-    @Pattern(regexp = "^[a-zA-Z0-9_-]{3,20}$", message = "Invalid username format")
+    @Pattern(regexp = "^[A-Za-z][A-Za-z0-9_]{7,29}$", message = "Invalid username format")
     private String username;
 
     private String password;
