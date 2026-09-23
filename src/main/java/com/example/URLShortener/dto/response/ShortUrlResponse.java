@@ -24,6 +24,8 @@ public class ShortUrlResponse {
 
     private ShortUrlStatus status;
 
+    private Long clicks;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime expiresAt;
