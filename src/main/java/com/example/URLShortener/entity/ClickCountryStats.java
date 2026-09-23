@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
-import java.time.Instant;
 import java.time.LocalDate;
-
 
 @Entity
 @Table(name = "click_country_stats")
@@ -37,13 +35,13 @@ public class ClickCountryStats {
         private Long shortUrlId;
 
         @Column(name = "stat_date")
-        private Instant statDate;
+        private LocalDate statDate;
 
         @Column(name = "country", length = 2)
         private String country;
     }
 
-    public static ClickCountryStats of(Long shortUrlId, Instant statDate, String country, Long clicks) {
+    public static ClickCountryStats of(Long shortUrlId, LocalDate statDate, String country, Long clicks) {
         return new ClickCountryStats(ClickCountryStatsId.of(shortUrlId, statDate, country), clicks, null);
     }
 }
