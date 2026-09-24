@@ -1,0 +1,3 @@
+# Generated seed data and run summaries — not source.
+k6/data/*.json
+results/

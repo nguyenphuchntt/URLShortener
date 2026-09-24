@@ -157,6 +157,13 @@
 			<artifactId>commons-pool2</artifactId>
 		</dependency>
 
+		<!-- GeoIP lookup for click analytics (reads classpath:geoip/GeoLite2-City.mmdb) -->
+		<dependency>
+			<groupId>com.maxmind.geoip2</groupId>
+			<artifactId>geoip2</artifactId>
+			<version>4.2.1</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

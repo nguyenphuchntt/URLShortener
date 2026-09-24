@@ -1,5 +1,7 @@
 package com.example.URLShortener.controller;
 
+import com.example.URLShortener.analytic.ClickEventPayload;
+import com.example.URLShortener.analytic.ClickEventPublisher;
 import com.example.URLShortener.cache.UrlCacheService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,12 +21,15 @@ import java.util.Optional;
 public class RedirectFilter extends OncePerRequestFilter {
 
     private final UrlCacheService urlCacheService;
+    private final ClickEventPublisher clickEventPublisher;
     private final String redirectPath;
 
     public RedirectFilter(
             UrlCacheService urlCacheService,
+            ClickEventPublisher clickEventPublisher,
             @Value("${short-code.redirect-path}") String redirectPath) {
         this.urlCacheService = urlCacheService;
+        this.clickEventPublisher = clickEventPublisher;
         this.redirectPath = redirectPath;
     }
 
@@ -48,6 +53,17 @@ public class RedirectFilter extends OncePerRequestFilter {
             if (v.isExpired()) {
                 urlCacheService.evict(shortCode);
             } else {
+                // A cache hit short-circuits the controller, so publish the click here too —
+                // otherwise analytics would only count the first (cache-miss) request per TTL.
+                if (v.shortUrlId() != null) {
+                    clickEventPublisher.publishClickEvent(ClickEventPayload.builder()
+                            .shortUrlId(v.shortUrlId())
+                            .ip(getClientIp(request))
+                            .userAgent(request.getHeader("User-Agent"))
+                            .referrer(request.getHeader("Referer"))
+                            .timestamp(System.currentTimeMillis())
+                            .build());
+                }
                 response.setStatus(HttpStatus.FOUND.value());
                 response.setHeader(HttpHeaders.LOCATION, v.originUrl());
                 response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
@@ -66,5 +82,16 @@ public class RedirectFilter extends OncePerRequestFilter {
         if (code.isEmpty() || code.contains("/")) return null;
         if (!code.matches("^[a-zA-Z0-9]{1,16}$")) return null;
         return code;
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip != null && ip.contains(",") ? ip.split(",")[0].trim() : ip;
     }
 }

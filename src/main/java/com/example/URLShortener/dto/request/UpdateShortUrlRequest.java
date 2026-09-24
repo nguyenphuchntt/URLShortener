@@ -1,6 +1,7 @@
 package com.example.URLShortener.dto.request;
 
 import com.example.URLShortener.entity.enums.ShortUrlStatus;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Future;
@@ -33,6 +34,7 @@ public class UpdateShortUrlRequest {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ShortUrlStatus status;
 
+    @Nullable
     @Future
     private LocalDateTime expiresAt;
 }

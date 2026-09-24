@@ -10,5 +10,5 @@ public interface AuthService {
     RegisterResponse register(RegisterRequest request);
     JwtResponse login(LoginRequest request);
     JwtResponse refresh(String refreshToken);
-    boolean logout(String refreshToken);
+    boolean logout(String refreshToken, String accessToken);
 }

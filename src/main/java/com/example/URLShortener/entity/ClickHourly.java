@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(name = "clicks_hourly")
@@ -35,6 +36,19 @@ public class ClickHourly {
 
         @Column(name = "hour")
         private Instant hour;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof ClickHourlyId that)) return false;
+            return Objects.equals(shortUrlId, that.shortUrlId)
+                    && Objects.equals(hour, that.hour);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(shortUrlId, hour);
+        }
     }
 
     public static ClickHourly of(Long shortUrlId, Instant hour, Long clickCount) {

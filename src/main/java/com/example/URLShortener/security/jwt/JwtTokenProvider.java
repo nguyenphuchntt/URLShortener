@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.UUID;
 import java.util.Date;
 import java.util.List;
 
@@ -70,6 +71,7 @@ public class JwtTokenProvider {
         Date expiresAt = new Date(now.getTime() + expiration);
         var builder = Jwts.builder()
                 .subject(String.valueOf(userId))
+                .id(UUID.randomUUID().toString())
                 .issuer(issuer)
                 .claim("type", tokenType)
                 .issuedAt(now)
@@ -113,6 +115,9 @@ public class JwtTokenProvider {
 
     public Collection<? extends GrantedAuthority> getAuthorities(String token) {
         String role = getRole(token);
+        if (role == null || role.isBlank()) {
+            return List.of();
+        }
         return List.of(new SimpleGrantedAuthority(role));
     }
 
@@ -122,5 +127,19 @@ public class JwtTokenProvider {
 
     public String getRole(String token) {
         return getClaims(token).get("role", String.class);
+    }
+
+    public String getJti(String token) {
+        return getClaims(token).getId();
+    }
+
+    public long getRemainingTtlSeconds(String token) {
+        try {
+            Date expiration = getClaims(token).getExpiration();
+            long remaining = (expiration.getTime() - System.currentTimeMillis()) / 1000;
+            return Math.max(remaining, 0);
+        } catch (JwtException | IllegalArgumentException e) {
+            return 0;
+        }
     }
 }

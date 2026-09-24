@@ -1,5 +1,5 @@
 export const APP_NAME = 'URL Shortener'
-export const SHORT_DOMAIN = 'https://sho.rt'
+export const SHORT_DOMAIN = 'localhost:8080/r'
 export const DEFAULT_PAGE_SIZE = 8
 
 export const ROUTES = {

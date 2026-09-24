@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,8 +54,12 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(
-            @Valid @RequestBody LogoutRequest request) {
-        if (authService.logout(request.getRefreshToken())) {
+            @Valid @RequestBody LogoutRequest request,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        String accessToken = authorization != null && authorization.startsWith("Bearer ")
+                ? authorization.substring(7)
+                : null;
+        if (authService.logout(request.getRefreshToken(), accessToken)) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).body(new LogoutResponse());
         } else {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(

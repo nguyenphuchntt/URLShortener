@@ -1,8 +1,11 @@
 package com.example.URLShortener.service.impl;
 
+import com.example.URLShortener.cache.BloomFilterService;
 import com.example.URLShortener.cache.UrlCacheService;
 import com.example.URLShortener.dto.request.CreateShortUrlRequest;
 import com.example.URLShortener.dto.request.UpdateShortUrlRequest;
+import com.example.URLShortener.dto.response.ShortUrlResponse;
+import com.example.URLShortener.entity.LinkStats;
 import com.example.URLShortener.entity.ShortUrl;
 import com.example.URLShortener.entity.enums.ShortUrlStatus;
 import com.example.URLShortener.exception.ConflictException;
@@ -11,6 +14,7 @@ import com.example.URLShortener.exception.ShortCodeAlreadyUsed;
 import com.example.URLShortener.exception.UnauthorizedException;
 import com.example.URLShortener.exception.UrlExpiredException;
 import com.example.URLShortener.logic.ShortCodeGenerator;
+import com.example.URLShortener.repository.LinkStatsRepository;
 import com.example.URLShortener.repository.ShortUrlRepository;
 import com.example.URLShortener.security.CurrentUser;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +43,8 @@ class ShortUrlServiceImplTest {
     @Mock CurrentUser currentUser;
     @Mock ShortCodeGenerator generator;
     @Mock UrlCacheService urlCacheService;
+    @Mock BloomFilterService bloomFilterService;
+    @Mock LinkStatsRepository linkStatsRepository;
 
     private ShortUrlServiceImpl service;
 
@@ -46,7 +52,8 @@ class ShortUrlServiceImplTest {
     void setUp() {
         // getByCodeForRedirect đọc cache trước; mặc định coi như cache MISS để test đi nhánh DB.
         lenient().when(urlCacheService.get(anyString())).thenReturn(Optional.empty());
-        service = new ShortUrlServiceImpl(repository, currentUser, urlCacheService, generator);
+        service = new ShortUrlServiceImpl(repository, currentUser, urlCacheService, generator,
+                bloomFilterService, linkStatsRepository);
     }
 
     @Test
@@ -161,13 +168,54 @@ class ShortUrlServiceImplTest {
 
     @Test
     void getMyUrls_shouldQueryCurrentOwnerAndMapResults() {
-        ShortUrl url = url("abc123", ShortUrlStatus.ACTIVE, null);
+        ShortUrl url = urlWithId(11L, "abc123", ShortUrlStatus.ACTIVE, null);
         PageRequest pageRequest = PageRequest.of(0, 10);
         when(currentUser.requireUserId()).thenReturn(7L);
         when(repository.findAllByOwnerId(7L, pageRequest)).thenReturn(new PageImpl<>(List.of(url)));
 
         assertThat(service.getMyUrls(pageRequest).getContent()).hasSize(1);
         verify(repository).findAllByOwnerId(7L, pageRequest);
+    }
+
+    @Test
+    void getMyUrls_shouldIncludeClickCountsFromLinkStats() {
+        ShortUrl url = urlWithId(11L, "abc123", ShortUrlStatus.ACTIVE, null);
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        when(currentUser.requireUserId()).thenReturn(7L);
+        when(repository.findAllByOwnerId(7L, pageRequest)).thenReturn(new PageImpl<>(List.of(url)));
+        when(linkStatsRepository.findByShortUrlIdIn(List.of(11L)))
+                .thenReturn(List.of(LinkStats.of(11L, 42L, null)));
+
+        assertThat(service.getMyUrls(pageRequest).getContent())
+                .singleElement()
+                .extracting(ShortUrlResponse::getClicks)
+                .isEqualTo(42L);
+    }
+
+    @Test
+    void getMyUrls_shouldDefaultClicksToZeroWhenNoStatsRow() {
+        ShortUrl url = urlWithId(11L, "abc123", ShortUrlStatus.ACTIVE, null);
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        when(currentUser.requireUserId()).thenReturn(7L);
+        when(repository.findAllByOwnerId(7L, pageRequest)).thenReturn(new PageImpl<>(List.of(url)));
+        when(linkStatsRepository.findByShortUrlIdIn(List.of(11L))).thenReturn(List.of());
+
+        assertThat(service.getMyUrls(pageRequest).getContent())
+                .singleElement()
+                .extracting(ShortUrlResponse::getClicks)
+                .isEqualTo(0L);
+    }
+
+    @Test
+    void create_whenCustomCodeAvailable_shouldAddCodeToBloomFilter() {
+        CreateShortUrlRequest request = request("https://example.com", "custom1");
+        when(repository.existsByShortCode("custom1")).thenReturn(false);
+        when(currentUser.requireUserId()).thenReturn(7L);
+        when(repository.save(any(ShortUrl.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(request);
+
+        verify(bloomFilterService).add("custom1");
     }
 
     private static CreateShortUrlRequest request(String origin, String customCode) {
@@ -178,7 +226,11 @@ class ShortUrlServiceImplTest {
     }
 
     private static ShortUrl url(String code, ShortUrlStatus status, LocalDateTime expiresAt) {
-        return ShortUrl.builder().shortCode(code).originUrl("https://example.com")
+        return urlWithId(null, code, status, expiresAt);
+    }
+
+    private static ShortUrl urlWithId(Long id, String code, ShortUrlStatus status, LocalDateTime expiresAt) {
+        return ShortUrl.builder().id(id).shortCode(code).originUrl("https://example.com")
                 .ownerId(7L).status(status).expiresAt(expiresAt)
                 .createdAt(LocalDateTime.now().minusMinutes(1)).updatedAt(LocalDateTime.now().minusMinutes(1)).build();
     }

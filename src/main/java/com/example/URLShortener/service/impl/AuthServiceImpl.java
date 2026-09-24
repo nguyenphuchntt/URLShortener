@@ -14,6 +14,7 @@ import com.example.URLShortener.repository.RefreshTokenRepository;
 import com.example.URLShortener.repository.RoleRepository;
 import com.example.URLShortener.repository.UserRepository;
 import com.example.URLShortener.security.jwt.JwtTokenProvider;
+import com.example.URLShortener.security.jwt.TokenBlacklistService;
 import com.example.URLShortener.service.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -36,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final RoleRepository roleRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     @Transactional
@@ -160,7 +162,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public boolean logout(String refreshToken) {
+    public boolean logout(String refreshToken, String accessToken) {
+        // Revoke the access token
+        if (accessToken != null && jwtTokenProvider.validateToken(accessToken)) {
+            tokenBlacklistService.revoke(
+                    jwtTokenProvider.getJti(accessToken),
+                    jwtTokenProvider.getRemainingTtlSeconds(accessToken)
+            );
+        }
         RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(() -> new UnauthorizedException("User already logout"));
         token.setRevokedAt(LocalDateTime.now());

@@ -43,7 +43,6 @@ public class RedirectController {
                 .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
         // Async: publish an event to Redis stream for click analysis
         clickEventPublisher.publishClickEvent(ClickEventPayload.builder()
-                .shortCode(shortUrl.getShortCode())
                 .shortUrlId(shortUrl.getId())
                 .ip(getClientIp(request))
                 .userAgent(request.getHeader("User-Agent"))

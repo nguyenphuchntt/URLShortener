@@ -3,6 +3,7 @@ import type {
   GetLinksParams,
   CreateLinkRequest,
   UpdateLinkStatusRequest,
+  UpdateLinkRequest,
   ShortLink,
   BackendLinkStatus,
 } from '@/features/links/types'
@@ -13,6 +14,7 @@ interface BackendShortUrl {
   shortCode: string
   originUrl: string
   status: BackendLinkStatus
+  clicks?: number
   createdAt: string
   updatedAt: string
   expiresAt: string | null
@@ -40,7 +42,7 @@ function toShortLink(url: BackendShortUrl | BackendCreateResponse): ShortLink {
     shortUrl: `${SHORT_DOMAIN}/${url.shortCode}`,
     originalUrl: url.originUrl,
     status: 'status' in url ? url.status : 'ACTIVE',
-    clicks: 0,
+    clicks: 'clicks' in url ? (url.clicks ?? 0) : 0,
     createdAt: url.createdAt,
     updatedAt: 'updatedAt' in url ? url.updatedAt : url.createdAt,
     expiresAt: url.expiresAt ?? null,
@@ -96,6 +98,19 @@ export const httpLinksApi: LinksApi = {
       status: request.status,
     })
     return toShortLink(response)
+  },
+
+  async updateLink(id: string, request: UpdateLinkRequest) {
+    const body: Record<string, unknown> = { shortCode: id }
+    if (request.newCode !== undefined) body.newShortCode = request.newCode
+    if (request.status !== undefined) body.status = request.status
+    if (request.expiresAt !== undefined) body.expiresAt = request.expiresAt
+    const response = await http.patch<BackendShortUrl>('/api/v1/urls', body)
+    return toShortLink(response)
+  },
+
+  async deleteLink(id: string) {
+    await http.delete(`/api/v1/urls/${id}`)
   },
 }
 

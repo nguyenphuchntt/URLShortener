@@ -21,7 +21,9 @@ public class GeoIpService {
         DatabaseReader r = null;
         try {
             ClassPathResource resource = new ClassPathResource(DB_PATH);
-            r = new DatabaseReader.Builder(resource.getInputStream()).build();
+            try (var inputStream = resource.getInputStream()) {
+                r = new DatabaseReader.Builder(inputStream).build();
+            }
             log.info("GeoIP database loaded from classpath:{}", DB_PATH);
         } catch (Exception e) {
             log.warn("GeoIP database not available at classpath:{}, geo lookups disabled", DB_PATH, e);

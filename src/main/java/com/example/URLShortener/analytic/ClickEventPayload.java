@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ClickEventPayload {
-    private String shortCode;
     private Long shortUrlId;
     private String ip;
     private String userAgent;

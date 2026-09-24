@@ -25,8 +25,14 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public AdminUserResponse updateUserStatus(Long id, boolean enabled) {
         var profile = userService.setEnabled(id, enabled);
-        return AdminUserResponse.builder().id(profile.getId()).username(profile.getUsername()).email(profile.getEmail())
-                .enabled(profile.isEnabled()).role(profile.getRole()).createdAt(profile.getCreatedAt()).build();
+        return AdminUserResponse.builder()
+                .id(profile.getId())
+                .username(profile.getUsername())
+                .email(profile.getEmail())
+                .enabled(profile.isEnabled())
+                .role(profile.getRole())
+                .createdAt(profile.getCreatedAt())
+                .build();
     }
 
     @Override

@@ -29,6 +29,7 @@ public class ClickCountryStats {
     @Getter
     @Setter
     @NoArgsConstructor
+    @EqualsAndHashCode(of = {"shortUrlId", "statDate", "country"})
     @AllArgsConstructor(staticName = "of")
     public static class ClickCountryStatsId implements Serializable {
         @Column(name = "short_url_id")

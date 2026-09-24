@@ -7,9 +7,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public class RateLimitResult {
 
-    public final boolean allowed;
-    public final long remainingTokens;
-    public final long retryAfterSeconds;
+    private final boolean allowed;
+    private final long remainingTokens;
+    private final long retryAfterSeconds;
 
     public static RateLimitResult allowed(long remainingTokens) {
         return new RateLimitResult(

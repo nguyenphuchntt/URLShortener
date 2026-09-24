@@ -1,6 +1,6 @@
 import type { AuthApi, AuthResponse, LoginRequest, RegisterRequest, User } from '@/features/auth/types'
-import { http, TOKEN_KEY } from './client'
-import { writeStorage, removeStorage } from '@/lib/storage'
+import { http, TOKEN_KEY, REFRESH_TOKEN_KEY, clearSession } from './client'
+import { readStorage, writeStorage } from '@/lib/storage'
 
 interface BackendJwtResponse {
   accessToken: string
@@ -41,8 +41,15 @@ export const httpAuthApi: AuthApi = {
       password: request.password,
     })
     writeStorage(TOKEN_KEY, jwtResponse.accessToken)
-    const profile = await http.get<BackendUserProfile>('/api/v1/users/me')
-    return { user: toUser(profile), accessToken: jwtResponse.accessToken }
+    writeStorage(REFRESH_TOKEN_KEY, jwtResponse.refreshToken)
+    try {
+      const profile = await http.get<BackendUserProfile>('/api/v1/users/me')
+      return { user: toUser(profile), accessToken: jwtResponse.accessToken }
+    } catch (error) {
+      // Don't leave orphaned tokens behind if the profile fetch fails right after login.
+      clearSession()
+      throw error
+    }
   },
 
   async register(request: RegisterRequest): Promise<AuthResponse> {
@@ -52,15 +59,28 @@ export const httpAuthApi: AuthApi = {
       password: request.password,
     })
     writeStorage(TOKEN_KEY, registerResponse.accessToken)
-    const profile = await http.get<BackendUserProfile>('/api/v1/users/me')
-    return { user: toUser(profile), accessToken: registerResponse.accessToken }
+    writeStorage(REFRESH_TOKEN_KEY, registerResponse.refreshToken)
+    try {
+      const profile = await http.get<BackendUserProfile>('/api/v1/users/me')
+      return { user: toUser(profile), accessToken: registerResponse.accessToken }
+    } catch (error) {
+      clearSession()
+      throw error
+    }
   },
 
   async logout(): Promise<void> {
+    const refreshToken = readStorage<string>(REFRESH_TOKEN_KEY, '')
     try {
-      await http.post<void>('/api/v1/auth/logout', {})
+      // The backend requires the refresh token in the body to revoke it, and reads the access
+      // token from the Authorization header (attached by the http client) to blacklist it.
+      if (refreshToken) {
+        await http.post<void>('/api/v1/auth/logout', { refreshToken })
+      }
+    } catch {
+      // Even if the server call fails, drop the local session.
     } finally {
-      removeStorage(TOKEN_KEY)
+      clearSession()
     }
   },
 

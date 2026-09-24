@@ -19,10 +19,12 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7-alpine
+    image: redis/redis-stack-server:7.4.0-v3
     container_name: urlshortener-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis-dev}
+    command: redis-stack-server --requirepass ${REDIS_PASSWORD:-redis-dev} --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, ExternalLink, Copy, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Link, ExternalLink, Copy, Plus, Search, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { useApi } from '@/app/providers'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/feedback/EmptyState'
@@ -12,6 +12,7 @@ import type { PagedResponse, SortOption } from '@/types/api'
 import { getLinkDisplayStatus, type LinkDisplayStatus, type ShortLink } from '@/features/links/types'
 import { LinkStatusBadge } from '@/features/links/components/LinkStatusBadge'
 import { CreateLinkDialog } from '@/features/links/components/CreateLinkDialog'
+import { EditLinkDialog } from '@/features/links/components/EditLinkDialog'
 
 export function LinksPage() {
   const { links: linksApi } = useApi()
@@ -25,7 +26,8 @@ export function LinksPage() {
   const [sort, setSort] = useState<SortOption>('newest')
   const [page, setPage] = useState(0)
   const [createOpen, setCreateOpen] = useState(false)
-  const [disableTarget, setDisableTarget] = useState<ShortLink | null>(null)
+  const [editTarget, setEditTarget] = useState<ShortLink | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<ShortLink | null>(null)
   const [mutationPending, setMutationPending] = useState(false)
   const [viewLink, setViewLink] = useState<ShortLink | null>(null)
 
@@ -79,15 +81,16 @@ export function LinksPage() {
     }
   }
 
-  const updateStatus = async (link: ShortLink, next: 'ACTIVE' | 'DISABLED') => {
+  const deleteLink = async () => {
+    if (!deleteTarget) return
     setMutationPending(true)
     try {
-      await linksApi.updateStatus(link.id, { status: next })
-      success(next === 'DISABLED' ? 'Link disabled.' : 'Link enabled.')
-      setDisableTarget(null)
+      await linksApi.deleteLink(deleteTarget.id)
+      success('Link deleted.')
+      setDeleteTarget(null)
       void load()
     } catch (caught) {
-      error(toUserMessage(caught, 'Could not update this link.'))
+      error(toUserMessage(caught, 'Could not delete this link.'))
     } finally {
       setMutationPending(false)
     }
@@ -218,8 +221,8 @@ export function LinksPage() {
                       <Actions
                         link={link}
                         onCopy={copy}
-                        onDisable={() => setDisableTarget(link)}
-                        onEnable={() => void updateStatus(link, 'ACTIVE')}
+                        onEdit={() => setEditTarget(link)}
+                        onDelete={() => setDeleteTarget(link)}
                         pending={mutationPending}
                       />
                     </td>
@@ -262,8 +265,8 @@ export function LinksPage() {
                   <Actions
                     link={link}
                     onCopy={copy}
-                    onDisable={() => setDisableTarget(link)}
-                    onEnable={() => void updateStatus(link, 'ACTIVE')}
+                    onEdit={() => setEditTarget(link)}
+                    onDelete={() => setDeleteTarget(link)}
                     pending={mutationPending}
                   />
                 </div>
@@ -307,14 +310,17 @@ export function LinksPage() {
         onCreated={() => void created()}
       />
 
-      <DisableDialog
-        target={disableTarget}
+      <EditLinkDialog
+        link={editTarget}
+        onClose={() => setEditTarget(null)}
+        onUpdated={() => void load()}
+      />
+
+      <DeleteDialog
+        target={deleteTarget}
         pending={mutationPending}
-        onConfirm={async () => {
-          if (!disableTarget) return
-          await updateStatus(disableTarget, 'DISABLED')
-        }}
-        onClose={() => !mutationPending && setDisableTarget(null)}
+        onConfirm={deleteLink}
+        onClose={() => !mutationPending && setDeleteTarget(null)}
       />
 
       <ViewLinkDialog
@@ -328,17 +334,16 @@ export function LinksPage() {
 function Actions({
   link,
   onCopy,
-  onDisable,
-  onEnable,
+  onEdit,
+  onDelete,
   pending,
 }: {
   link: ShortLink
   onCopy: (url: string) => void
-  onDisable: () => void
-  onEnable: () => void
+  onEdit: () => void
+  onDelete: () => void
   pending: boolean
 }) {
-  const status = getLinkDisplayStatus(link)
   return (
     <div className="flex items-center justify-end gap-1">
       <a
@@ -358,31 +363,29 @@ function Actions({
       >
         <Copy className="h-4 w-4" />
       </button>
-      {status === 'ACTIVE' && (
-        <Button
-          variant="ghost"
-          className="min-h-8 px-2 text-xs"
-          disabled={pending}
-          onClick={onDisable}
-        >
-          Disable
-        </Button>
-      )}
-      {status === 'DISABLED' && (
-        <Button
-          variant="secondary"
-          className="min-h-8 px-2 text-xs"
-          disabled={pending}
-          onClick={onEnable}
-        >
-          Enable
-        </Button>
-      )}
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label="Edit link"
+        disabled={pending}
+        className="rounded-md p-2 text-muted hover:bg-slate-100 hover:text-ink disabled:opacity-55"
+      >
+        <Pencil className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        aria-label="Delete link"
+        disabled={pending}
+        className="rounded-md p-2 text-muted hover:bg-red-50 hover:text-danger disabled:opacity-55"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
     </div>
   )
 }
 
-function DisableDialog({
+function DeleteDialog({
   target,
   pending,
   onConfirm,
@@ -397,10 +400,10 @@ function DisableDialog({
     <Dialog
       open={Boolean(target)}
       onClose={onClose}
-      title="Disable this link?"
+      title="Delete this link?"
       description={
         target
-          ? `Visitors will no longer be redirected through ${target.shortUrl}. You can enable it again later.`
+          ? `${target.shortUrl} will stop redirecting and be removed from your links. This cannot be undone.`
           : undefined
       }
     >
@@ -408,12 +411,8 @@ function DisableDialog({
         <Button variant="secondary" onClick={onClose} disabled={pending}>
           Cancel
         </Button>
-        <Button
-          variant="danger"
-          loading={pending}
-          onClick={() => void onConfirm()}
-        >
-          {pending ? 'Disabling…' : 'Disable link'}
+        <Button variant="danger" loading={pending} onClick={() => void onConfirm()}>
+          {pending ? 'Deleting…' : 'Delete link'}
         </Button>
       </div>
     </Dialog>

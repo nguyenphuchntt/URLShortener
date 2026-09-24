@@ -1,13 +1,16 @@
 package com.example.URLShortener.service.impl;
 
+import com.example.URLShortener.cache.BloomFilterService;
 import com.example.URLShortener.cache.UrlCacheService;
 import com.example.URLShortener.dto.request.CreateShortUrlRequest;
 import com.example.URLShortener.dto.request.UpdateShortUrlRequest;
 import com.example.URLShortener.dto.response.ShortUrlResponse;
 import com.example.URLShortener.entity.ShortUrl;
+import com.example.URLShortener.entity.LinkStats;
 import com.example.URLShortener.entity.enums.ShortUrlStatus;
 import com.example.URLShortener.exception.*;
 import com.example.URLShortener.logic.ShortCodeGenerator;
+import com.example.URLShortener.repository.LinkStatsRepository;
 import com.example.URLShortener.repository.ShortUrlRepository;
 import com.example.URLShortener.security.CurrentUser;
 import com.example.URLShortener.service.ShortUrlService;
@@ -21,7 +24,10 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ShortUrlServiceImpl implements ShortUrlService {
@@ -32,20 +38,27 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     private final ShortUrlRepository shortUrlRepository;
     private final CurrentUser currentUser;
     private final UrlCacheService urlCacheService;
+    private final BloomFilterService bloomFilterService;
+    private final LinkStatsRepository linkStatsRepository;
 
     ShortUrlServiceImpl (
             ShortUrlRepository shortUrlRepository,
             CurrentUser currentUser,
             UrlCacheService urlCacheService,
-            ShortCodeGenerator shortCodeGenerator) {
+            ShortCodeGenerator shortCodeGenerator,
+            BloomFilterService bloomFilterService,
+            LinkStatsRepository linkStatsRepository) {
         this.shortCodeGenerator = shortCodeGenerator;
         this.shortUrlRepository = shortUrlRepository;
         this.currentUser = currentUser;
         this.urlCacheService = urlCacheService;
+        this.bloomFilterService = bloomFilterService;
+        this.linkStatsRepository = linkStatsRepository;
     }
 
     @Transactional
     public ShortUrl create(CreateShortUrlRequest request) {
+        // customized
         if (request.getCustomShortCode() != null && !request.getCustomShortCode().isEmpty()) {
             if (shortUrlRepository.existsByShortCode(request.getCustomShortCode())) {
                 throw new ShortCodeAlreadyUsed("Short code was used");
@@ -62,11 +75,13 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                         .build();
 
                 newShortUrl = shortUrlRepository.save(newShortUrl);
+                bloomFilterService.add(newShortUrl.getShortCode());
                 log.info("Created new shortCode {} for origin URL {}, customized", newShortUrl.getShortCode(), newShortUrl.getOriginUrl());
                 return newShortUrl;
             }
         }
 
+        // random code
         String originUrl = request.getOriginUrl();
         String shortCode = shortCodeGenerator.next();
 
@@ -83,6 +98,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                 .build();
 
         newShortUrl = shortUrlRepository.save(newShortUrl);
+        bloomFilterService.add(newShortUrl.getShortCode());
         log.info("Created new shortCode {} for origin URL {}", newShortUrl.getShortCode(), newShortUrl.getOriginUrl());
         return newShortUrl;
     }
@@ -118,7 +134,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
         Instant expiresAt = shortUrl.getExpiresAt() == null ?
                 null
                 : shortUrl.getExpiresAt().toInstant(ZoneOffset.UTC);
-        urlCacheService.put(shortCode, shortUrl.getOriginUrl(), expiresAt);
+        urlCacheService.put(shortCode, shortUrl.getOriginUrl(), expiresAt, shortUrl.getId());
         return Optional.of(shortUrl);
     }
 
@@ -170,6 +186,9 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                     }
                     if (request.getExpiresAt() != null && request.getExpiresAt() != url.getExpiresAt()) {
                         url.setExpiresAt(request.getExpiresAt());
+                        if (url.getStatus() != ShortUrlStatus.ACTIVE) { // expiresAt is always in the future
+                            url.setStatus(ShortUrlStatus.ACTIVE);
+                        }
                         modified[0] = true;
                     }
                     if (modified[0]) {
@@ -189,20 +208,22 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     @Override
     public Page<ShortUrlResponse> getMyUrls(Pageable pageable) {
         Long userId = currentUser.requireUserId();
-        return shortUrlRepository
-                .findAllByOwnerId(userId, pageable)
-                .map(
-                        shortUrl -> {
-                            return ShortUrlResponse.builder()
-                                    .originUrl(shortUrl.getOriginUrl())
-                                    .shortCode(shortUrl.getShortCode())
-                                    .status(shortUrl.getStatus())
-                                    .updatedAt(shortUrl.getUpdatedAt())
-                                    .createdAt(shortUrl.getCreatedAt())
-                                    .expiresAt(shortUrl.getExpiresAt())
-                                    .build();
-                        }
-                );
+        Page<ShortUrl> page = shortUrlRepository.findAllByOwnerId(userId, pageable);
+        List<Long> ids = page.getContent().stream().map(ShortUrl::getId).collect(Collectors.toList());
+        // batch
+        Map<Long, Long> clicksByUrlId = ids.isEmpty()
+                ? Map.of()
+                : linkStatsRepository.findByShortUrlIdIn(ids).stream()
+                        .collect(Collectors.toMap(LinkStats::getShortUrlId, LinkStats::getTotalClicks));
+        return page.map(shortUrl -> ShortUrlResponse.builder()
+                .originUrl(shortUrl.getOriginUrl())
+                .shortCode(shortUrl.getShortCode())
+                .status(shortUrl.getStatus())
+                .clicks(clicksByUrlId.getOrDefault(shortUrl.getId(), 0L))
+                .updatedAt(shortUrl.getUpdatedAt())
+                .createdAt(shortUrl.getCreatedAt())
+                .expiresAt(shortUrl.getExpiresAt())
+                .build());
     }
 
     @Override
