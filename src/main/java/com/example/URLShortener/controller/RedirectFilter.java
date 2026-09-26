@@ -1,0 +1,97 @@
+package com.example.URLShortener.controller;
+
+import com.example.URLShortener.analytic.ClickEventPayload;
+import com.example.URLShortener.analytic.ClickEventPublisher;
+import com.example.URLShortener.cache.UrlCacheService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Optional;
+
+@Component
+public class RedirectFilter extends OncePerRequestFilter {
+
+    private final UrlCacheService urlCacheService;
+    private final ClickEventPublisher clickEventPublisher;
+    private final String redirectPath;
+
+    public RedirectFilter(
+            UrlCacheService urlCacheService,
+            ClickEventPublisher clickEventPublisher,
+            @Value("${short-code.redirect-path}") String redirectPath) {
+        this.urlCacheService = urlCacheService;
+        this.clickEventPublisher = clickEventPublisher;
+        this.redirectPath = redirectPath;
+    }
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
+        if (!HttpMethod.GET.matches(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        String shortCode = extractShortCodeFromRequest(request);
+        if (shortCode == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        Optional<UrlCacheService.CachedUrl> cached = urlCacheService.get(shortCode);
+        if (cached.isPresent()) {
+            UrlCacheService.CachedUrl v = cached.get();
+            if (v.isExpired()) {
+                urlCacheService.evict(shortCode);
+            } else {
+                // A cache hit short-circuits the controller, so publish the click here too —
+                // otherwise analytics would only count the first (cache-miss) request per TTL.
+                if (v.shortUrlId() != null) {
+                    clickEventPublisher.publishClickEvent(ClickEventPayload.builder()
+                            .shortUrlId(v.shortUrlId())
+                            .ip(getClientIp(request))
+                            .userAgent(request.getHeader("User-Agent"))
+                            .referrer(request.getHeader("Referer"))
+                            .timestamp(System.currentTimeMillis())
+                            .build());
+                }
+                response.setStatus(HttpStatus.FOUND.value());
+                response.setHeader(HttpHeaders.LOCATION, v.originUrl());
+                response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+                return;
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+
+    private String extractShortCodeFromRequest(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        if (!path.startsWith(redirectPath)) {
+            return null;
+        }
+        String code = path.substring(redirectPath.length());
+        if (code.isEmpty() || code.contains("/")) return null;
+        if (!code.matches("^[a-zA-Z0-9]{1,16}$")) return null;
+        return code;
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip != null && ip.contains(",") ? ip.split(",")[0].trim() : ip;
+    }
+}

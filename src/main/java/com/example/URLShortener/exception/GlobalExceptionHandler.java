@@ -1,0 +1,162 @@
+package com.example.URLShortener.exception;
+
+import com.example.URLShortener.dto.response.ErrorResponse;
+import com.example.URLShortener.entity.enums.ErrorCode;
+import jakarta.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.NotImplementedException;
+import org.springframework.context.MessageSourceResolvable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ErrorResponse> handleAppException(AppException ex, HttpServletRequest request) {
+        return buildResponse(ex.getStatus(), ex.getErrorCode(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ShortCodeAlreadyUsed.class)
+    public ResponseEntity<ErrorResponse> handleShortCodeUsed(ShortCodeAlreadyUsed ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.SHORT_CODE_TAKEN,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(UrlExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredShortCode(UrlExpiredException ex, HttpServletRequest request) {
+        return buildResponse(
+                ex.getStatus(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(NotImplementedException.class)
+    public ResponseEntity<ErrorResponse> handleNotImplementedException(NotImplementedException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.NOT_IMPLEMENTED,
+                ErrorCode.NOT_IMPLEMENTED,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getField() + " " + error.getDefaultMessage())
+                .orElse("Validation failed");
+        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_PARAMETER_FORMAT, message, request);
+    }
+
+    @ExceptionHandler(RoleAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleRoleAlreadyExists(RoleAlreadyExistsException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                ErrorCode.ROLE_ALREADY_EXISTS,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUsernameNotFound(UsernameNotFoundException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.UNAUTHORIZED,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                ErrorCode.UNAUTHORIZED,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(HttpClientErrorException.Forbidden.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(HttpClientErrorException.Forbidden ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                ErrorCode.FORBIDDEN,
+                ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(
+            HandlerMethodValidationException ex,
+            HttpServletRequest request) {
+
+        String message = ex.getParameterValidationResults()
+                .stream()
+                .flatMap(result -> result.getResolvableErrors().stream())
+                .map(MessageSourceResolvable::getDefaultMessage)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.INVALID_PARAMETER_FORMAT,
+                message,
+                request
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        String message = String.format("Method %s is not supported by this endpoint. Detailed message: %s", ex.getMethod(), ex.getMessage());
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED,
+                ErrorCode.METHOD_NOT_ALLOWED,
+                message,
+                request);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.UNEXPECTED_ERROR,
+                "Unexpected error",
+                request);
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(
+            HttpStatus status,
+            ErrorCode errorCode,
+            String message,
+            HttpServletRequest request) {
+        ErrorResponse body = ErrorResponse.builder()
+                .time(LocalDateTime.now())
+                .status(status.value())
+                .errorMessage(message)
+                .errorCode(errorCode)
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(status).body(body);
+    }
+}

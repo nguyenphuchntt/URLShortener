@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: urlshortener-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-urlshortener}
+      POSTGRES_USER: ${POSTGRES_USER:-urlshortener}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-urlshortener}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis/redis-stack-server:7.4.0-v3
+    container_name: urlshortener-redis
+    restart: unless-stopped
+    command: redis-stack-server --requirepass ${REDIS_PASSWORD:-redis-dev} --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD:-redis-dev}\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: urlshortener-backend:local
+    container_name: urlshortener-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-urlshortener}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-urlshortener}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-urlshortener}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis-dev}
+      RATELIMIT_ENABLED: ${RATELIMIT_ENABLED:-true}
+      RATELIMIT_DEFAULT_LIMIT_CAPACITY: ${RATELIMIT_DEFAULT_LIMIT_CAPACITY:-100}
+      RATELIMIT_DEFAULT_LIMIT_DURATION_SECONDS: ${RATELIMIT_DEFAULT_LIMIT_DURATION_SECONDS:-60}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend/UrlShortener
+      dockerfile: Dockerfile
+    image: urlshortener-frontend:local
+    container_name: urlshortener-frontend
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  postgres-data:
+  redis-data:

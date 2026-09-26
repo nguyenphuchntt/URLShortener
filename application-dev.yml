@@ -1,0 +1,8 @@
+logging:
+  level:
+    com.example.URLShortener.logic: DEBUG
+    com.example.URLShortener.security: DEBUG
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%ex{full}"
+  file:
+    name: logs/urlshortener.log
