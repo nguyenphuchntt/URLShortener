@@ -2,6 +2,7 @@ package com.example.URLShortener.config;
 
 import com.example.URLShortener.controller.RedirectFilter;
 import com.example.URLShortener.ratelimit.RateLimitFilter;
+import com.example.URLShortener.ratelimit.RateLimitProperties;
 import com.example.URLShortener.ratelimit.RateLimitService;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -11,8 +12,10 @@ import org.springframework.context.annotation.Configuration;
 public class FilterChainConfig {
 
     @Bean
-    public RateLimitFilter rateLimitFilter(RateLimitService rateLimitService) {
-        return new RateLimitFilter(rateLimitService);
+    public RateLimitFilter rateLimitFilter(
+            RateLimitService rateLimitService,
+            RateLimitProperties properties) {
+        return new RateLimitFilter(rateLimitService, properties);
     }
 
     @Bean

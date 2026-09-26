@@ -8,11 +8,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "ratelimit")
 @Getter
+@Setter
 public class RateLimitProperties {
 
-    private final boolean enabled = true;
+    /** Master switch: set ratelimit.enabled=false to bypass the filter entirely (e.g. perf runs). */
+    private boolean enabled = true;
 
-    @Setter
     private LimitConfig defaultLimit = new LimitConfig(100, 60);
 
     @Getter

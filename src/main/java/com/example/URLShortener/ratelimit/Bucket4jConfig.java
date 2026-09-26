@@ -12,6 +12,7 @@ import io.lettuce.core.codec.StringCodec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
 import java.time.Duration;
@@ -26,9 +27,11 @@ public class Bucket4jConfig {
         RedisURI.Builder uriBuilder = RedisURI.builder()
                 .withHost(lettuceFactory.getStandaloneConfiguration().getHostName())
                 .withPort(lettuceFactory.getStandaloneConfiguration().getPort());
-        char[] password = lettuceFactory.getStandaloneConfiguration().getPassword().get();
-        if (password != null && password.length > 0) {
-            uriBuilder.withPassword(password);
+        // Password is optional: Redis may run without auth (local dev, test profile).
+        // RedisPassword is empty then, and calling .get() on it throws NoSuchElementException.
+        RedisPassword password = lettuceFactory.getStandaloneConfiguration().getPassword();
+        if (password.isPresent()) {
+            uriBuilder.withPassword(password.get());
         }
 
         RedisClient redisClient = RedisClient.create(uriBuilder.build());

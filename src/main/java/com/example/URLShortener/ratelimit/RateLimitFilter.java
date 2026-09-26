@@ -14,6 +14,7 @@ import java.io.IOException;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;
+    private final RateLimitProperties properties;
 
     @Override
     protected void doFilterInternal(
@@ -21,6 +22,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        // Bypass the entire filter when ratelimit.enabled=false (e.g. perf testing).
+        if (!properties.isEnabled()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String endpoint = resolveEndpoint(request);
         String identifier = resolveIdentifier(request);
         RateLimitResult result = rateLimitService.tryConsume(

@@ -97,6 +97,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(HttpClientErrorException.Forbidden.class)
     public ResponseEntity<ErrorResponse> handleForbidden(HttpClientErrorException.Forbidden ex, HttpServletRequest request) {
         return buildResponse(
                 HttpStatus.FORBIDDEN,
