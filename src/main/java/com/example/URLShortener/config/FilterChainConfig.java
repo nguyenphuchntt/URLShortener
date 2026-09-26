@@ -7,6 +7,7 @@ import com.example.URLShortener.ratelimit.RateLimitService;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 public class FilterChainConfig {
@@ -14,8 +15,9 @@ public class FilterChainConfig {
     @Bean
     public RateLimitFilter rateLimitFilter(
             RateLimitService rateLimitService,
-            RateLimitProperties properties) {
-        return new RateLimitFilter(rateLimitService, properties);
+            RateLimitProperties properties,
+            ObjectMapper objectMapper) {
+        return new RateLimitFilter(rateLimitService, properties, objectMapper);
     }
 
     @Bean

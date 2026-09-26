@@ -1,20 +1,30 @@
 package com.example.URLShortener.ratelimit;
 
+import com.example.URLShortener.dto.response.ErrorResponse;
+import com.example.URLShortener.entity.enums.ErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
+@Slf4j
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
 
+    private static final String FALLBACK_BODY =
+            "{\"status\":429,\"errorMessage\":\"Rate limit exceeded\",\"errorCode\":\"RATE_LIMIT_EXCEEDED\"}";
+
     private final RateLimitService rateLimitService;
     private final RateLimitProperties properties;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(
@@ -40,13 +50,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     "Retry-After",
                     String.valueOf(result.getRetryAfterSeconds())
             );
+            response.setHeader("X-RateLimit-Remaining", "0");
             response.setContentType("application/json");
-            response.getWriter().write("""
-                    {
-                        "error": "Too many requests",
-                        "message": "Rate limit exceeded"
-                    }
-                    """);
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(errorBody(request));
             return;
         }
         response.setHeader(
@@ -57,6 +64,21 @@ public class RateLimitFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    private String errorBody(HttpServletRequest request) {
+        ErrorResponse body = ErrorResponse.builder()
+                .time(LocalDateTime.now())
+                .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                .errorMessage("Rate limit exceeded")
+                .errorCode(ErrorCode.RATE_LIMIT_EXCEEDED)
+                .path(request.getRequestURI())
+                .build();
+        try {
+            return objectMapper.writeValueAsString(body);
+        } catch (Exception e) {
+            log.warn("Failed to serialize rate limit response body", e);
+            return FALLBACK_BODY;
+        }
+    }
 
     private String resolveEndpoint(
             HttpServletRequest request

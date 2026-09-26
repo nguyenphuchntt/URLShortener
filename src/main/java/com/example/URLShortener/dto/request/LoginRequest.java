@@ -11,5 +11,6 @@ public class LoginRequest {
     @Pattern(regexp = "^[A-Za-z][A-Za-z0-9_]{7,29}$", message = "Invalid username format")
     private String username;
 
+    @NotBlank
     private String password;
 }
