@@ -63,7 +63,7 @@ exception/      Custom exceptions + GlobalExceptionHandler (maps to ErrorRespons
 mapper/         MapStruct mappers (RoleMapper)
 ```
 
-### 3.3 Backend Request Flow
+### 3.2 Backend Request Flow
 
 ```
                          ┌───────────────┐

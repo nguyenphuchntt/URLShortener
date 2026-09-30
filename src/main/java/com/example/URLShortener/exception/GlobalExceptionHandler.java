@@ -7,6 +7,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -93,6 +94,16 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED,
                 ErrorCode.UNAUTHORIZED,
                 ex.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                ErrorCode.FORBIDDEN,
+                "Access denied",
                 request
         );
     }
