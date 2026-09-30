@@ -28,11 +28,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * ClickEventConsumer là hộp đen 1 chiều: nhận JSON click từ Redis Stream, ghi raw log +
- * 3 rollup. Test này kiểm tra branching (geo có/không, shortUrlId thiếu, shortUrl không tồn
- * tại) và hành vi nuốt lỗi (poison message được ack, không rethrow).
- */
 @ExtendWith(MockitoExtension.class)
 class ClickEventConsumerTest {
 

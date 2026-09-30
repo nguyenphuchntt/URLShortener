@@ -38,7 +38,6 @@ class AuthServiceImplTest {
 
     private static final String RAW_PASSWORD = "password";
 
-    /** Hash thật của {@link #RAW_PASSWORD}: login() tự tạo encoder bên trong nên không thể mock. */
     private static final String ENCODED_PASSWORD = PasswordConfig.passwordEncoder().encode(RAW_PASSWORD);
 
     @Mock UserRepository userRepository;

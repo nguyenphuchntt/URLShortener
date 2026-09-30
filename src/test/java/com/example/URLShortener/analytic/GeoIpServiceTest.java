@@ -8,11 +8,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Nạp GeoLite2-City.mmdb thật từ classpath ({@code src/main/resources/geoip/}).
- * Nếu file bị thiếu thì reader = null và mọi lookup trả UNKNOWN — khi đó
- * {@link #resolve_whenIpIsPublic_shouldResolveCountry()} sẽ fail để báo hiệu geo đang tắt.
- */
 class GeoIpServiceTest {
 
     private static GeoIpService service;
@@ -24,7 +19,6 @@ class GeoIpServiceTest {
 
     @AfterAll
     static void closeDatabase() {
-        // close() nuốt mọi exception nên gọi hai lần phải không ném gì.
         service.close();
         service.close();
     }

@@ -19,11 +19,6 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * {@code RemoteBucketBuilder#build} trả về {@code BucketProxy} (một subtype của {@code Bucket},
- * không phải chính {@code Bucket}), nên builder được mock ở chế độ deep-stub để Mockito tự tạo
- * đúng type cho bucket thay vì phải import class đó.
- */
 @ExtendWith(MockitoExtension.class)
 class RateLimitServiceTest {
 
@@ -35,9 +30,7 @@ class RateLimitServiceTest {
 
     @BeforeEach
     void setUp() {
-        // BucketConfigurationFactory thật: BucketConfiguration chỉ là value object, không cần mock.
         service = new RateLimitService(proxyManager, new BucketConfigurationFactory(), new RateLimitProperties());
-        // lenient: test thuần value object của RateLimitResult không đi qua ProxyManager.
         lenient().when(proxyManager.builder()).thenReturn(bucketBuilder);
     }
 
@@ -107,10 +100,6 @@ class RateLimitServiceTest {
         assertThat(RateLimitResult.rejected(7L).getRetryAfterSeconds()).isEqualTo(7L);
     }
 
-    /**
-     * Stub đúng 1 token: nếu RateLimitService gọi tryConsumeAndReturnRemaining với số khác thì
-     * stub không khớp, probe trả null và test fail — khoá luôn hành vi "tiêu thụ đúng 1 token".
-     */
     private void givenProbe(boolean consumed, long remainingTokens, long nanosToWaitForRefill) {
         when(bucketBuilder.build(anyString(), any(BucketConfiguration.class)).tryConsumeAndReturnRemaining(1))
                 .thenReturn(probe);

@@ -50,7 +50,6 @@ class ShortUrlServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // getByCodeForRedirect đọc cache trước; mặc định coi như cache MISS để test đi nhánh DB.
         lenient().when(urlCacheService.get(anyString())).thenReturn(Optional.empty());
         service = new ShortUrlServiceImpl(repository, currentUser, urlCacheService, generator,
                 bloomFilterService, linkStatsRepository);
