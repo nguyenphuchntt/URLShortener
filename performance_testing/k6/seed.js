@@ -23,6 +23,10 @@ const COLD = Number(__ENV.COLD || 10000);
 const REDIRECT_PATH = __ENV.REDIRECT_PATH || '/r/';
 
 export const options = {
+  // Seeding is intentionally done in setup(), so allow large cold pools to finish.
+  // Keep this configurable because large pools can take substantially longer than a
+  // normal k6 setup window.
+  setupTimeout: __ENV.SETUP_TIMEOUT || '30m',
   scenarios: {
     // Actual load is irrelevant here — setup() does the work, this is a placeholder.
     seed: { executor: 'shared-iterations', vus: 1, iterations: 1, maxDuration: '30m' },
@@ -55,8 +59,32 @@ function createLink(token, label) {
     JSON.stringify({ originUrl: `https://example.com/perf/${label}/${Date.now()}` }),
     { headers: { ...JSON_HEADERS, Authorization: `Bearer ${token}` } }
   );
-  if (res.status !== 201) return null;
+  if (res.status !== 201) {
+    // First failure is usually rate-limiting; surface the body once so the user can see
+    // whether to raise RATELIMIT_DEFAULT_LIMIT_CAPACITY or seed fewer codes.
+    if (createLink.firstFailureLogged !== true) {
+      createLink.firstFailureLogged = true;
+      console.log(`createLink failed status=${res.status} body=${res.body}`);
+    }
+    return null;
+  }
   return res.json('shortCode');
+}
+
+function logProgress(label, written, total, startedAt) {
+  // Print a heartbeat every 5,000 (or every 5% of remaining) creations so the user can see
+  // seeding is making forward progress during long seeds.
+  const step = Math.max(5000, Math.floor(total / 20));
+  if (written % step === 0 || written === total) {
+    const elapsed = (Date.now() - startedAt) / 1000;
+    const rate = written > 0 ? written / elapsed : 0;
+    const etaSeconds = rate > 0 ? (total - written) / rate : -1;
+    const etaMinutes = etaSeconds >= 0 ? (etaSeconds / 60).toFixed(1) : '?';
+    console.log(
+      `[seed] ${label}: ${written}/${total} ` +
+      `(${elapsed.toFixed(1)}s, ${rate.toFixed(0)}/s, ETA ${etaMinutes}m)`
+    );
+  }
 }
 
 export function setup() {
@@ -65,6 +93,8 @@ export function setup() {
     throw new Error('Could not authenticate seed user — check credentials / rate limit.');
   }
 
+  const startedAt = Date.now();
+
   const hotCodes = [];
   for (let i = 0; i < HOT; i++) {
     const code = createLink(token, `hot-${i}`);
@@ -72,15 +102,25 @@ export function setup() {
       hotCodes.push(code);
       http.get(`${BASE_URL}${REDIRECT_PATH}${code}`, { redirects: 0 }); // warm the cache
     }
+    if (HOT > 0) logProgress('hot', hotCodes.length, HOT, startedAt);
   }
 
   const coldCodes = [];
+  let failures = 0;
   for (let i = 0; i < COLD; i++) {
     const code = createLink(token, `cold-${i}`);
-    if (code) coldCodes.push(code); // never redirected → stays a cache MISS
+    if (code) {
+      coldCodes.push(code);
+    } else {
+      failures++;
+    }
+    logProgress('cold', coldCodes.length + failures, COLD, startedAt);
   }
 
-  console.log(`Seeded ${hotCodes.length} hot / ${coldCodes.length} cold codes.`);
+  console.log(
+    `Seeded ${hotCodes.length} hot / ${coldCodes.length} cold ` +
+    `(${failures} cold failures) in ${((Date.now() - startedAt) / 1000).toFixed(1)}s.`
+  );
   return { hotCodes, coldCodes };
 }
 

@@ -18,10 +18,10 @@ http.setResponseCallback(http.expectedStatuses(301, 302));
 // GET /r/{code} with redirect following DISABLED.
 // redirects:0 is mandatory — otherwise k6 follows the 302 out to the real Internet
 // and every sample measures the upstream site instead of this backend.
-export function redirect(code) {
+export function redirect(code, tags = {}) {
   return http.get(`${BASE_URL}${REDIRECT_PATH}${code}`, {
     redirects: 0,
-    tags: { name: 'redirect' },
+    tags: { name: 'redirect', ...tags },
   });
 }
 

@@ -1,5 +1,6 @@
 package com.example.URLShortener;
 
+import com.example.URLShortener.analytic.ClickStreamProperties;
 import com.example.URLShortener.ratelimit.RateLimitProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableConfigurationProperties(RateLimitProperties.class)
+@EnableConfigurationProperties({RateLimitProperties.class, ClickStreamProperties.class})
 @EnableAsync
 @EnableScheduling
 public class UrlShortenerApplication {

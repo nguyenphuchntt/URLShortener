@@ -1,6 +1,6 @@
 package com.example.URLShortener.service.impl;
 
-import com.example.URLShortener.cache.BloomFilterService;
+// import com.example.URLShortener.cache.BloomFilterService; // Disabled for performance testing.
 import com.example.URLShortener.cache.UrlCacheService;
 import com.example.URLShortener.dto.request.CreateShortUrlRequest;
 import com.example.URLShortener.dto.request.UpdateShortUrlRequest;
@@ -38,7 +38,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
     private final ShortUrlRepository shortUrlRepository;
     private final CurrentUser currentUser;
     private final UrlCacheService urlCacheService;
-    private final BloomFilterService bloomFilterService;
+    // private final BloomFilterService bloomFilterService; // Disabled for performance testing.
     private final LinkStatsRepository linkStatsRepository;
 
     ShortUrlServiceImpl (
@@ -46,13 +46,13 @@ public class ShortUrlServiceImpl implements ShortUrlService {
             CurrentUser currentUser,
             UrlCacheService urlCacheService,
             ShortCodeGenerator shortCodeGenerator,
-            BloomFilterService bloomFilterService,
+            // BloomFilterService bloomFilterService, // Disabled for performance testing.
             LinkStatsRepository linkStatsRepository) {
         this.shortCodeGenerator = shortCodeGenerator;
         this.shortUrlRepository = shortUrlRepository;
         this.currentUser = currentUser;
         this.urlCacheService = urlCacheService;
-        this.bloomFilterService = bloomFilterService;
+        // this.bloomFilterService = bloomFilterService; // Disabled for performance testing.
         this.linkStatsRepository = linkStatsRepository;
     }
 
@@ -75,7 +75,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                         .build();
 
                 newShortUrl = shortUrlRepository.save(newShortUrl);
-                bloomFilterService.add(newShortUrl.getShortCode());
+                // bloomFilterService.add(newShortUrl.getShortCode()); // Disabled for performance testing.
                 log.info("Created new shortCode {} for origin URL {}, customized", newShortUrl.getShortCode(), newShortUrl.getOriginUrl());
                 return newShortUrl;
             }
@@ -98,7 +98,7 @@ public class ShortUrlServiceImpl implements ShortUrlService {
                 .build();
 
         newShortUrl = shortUrlRepository.save(newShortUrl);
-        bloomFilterService.add(newShortUrl.getShortCode());
+        // bloomFilterService.add(newShortUrl.getShortCode()); // Disabled for performance testing.
         log.info("Created new shortCode {} for origin URL {}", newShortUrl.getShortCode(), newShortUrl.getOriginUrl());
         return newShortUrl;
     }

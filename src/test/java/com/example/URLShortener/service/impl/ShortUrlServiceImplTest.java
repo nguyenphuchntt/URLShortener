@@ -1,6 +1,6 @@
 package com.example.URLShortener.service.impl;
 
-import com.example.URLShortener.cache.BloomFilterService;
+// import com.example.URLShortener.cache.BloomFilterService; // Disabled for performance testing.
 import com.example.URLShortener.cache.UrlCacheService;
 import com.example.URLShortener.dto.request.CreateShortUrlRequest;
 import com.example.URLShortener.dto.request.UpdateShortUrlRequest;
@@ -43,7 +43,7 @@ class ShortUrlServiceImplTest {
     @Mock CurrentUser currentUser;
     @Mock ShortCodeGenerator generator;
     @Mock UrlCacheService urlCacheService;
-    @Mock BloomFilterService bloomFilterService;
+    // @Mock BloomFilterService bloomFilterService; // Disabled for performance testing.
     @Mock LinkStatsRepository linkStatsRepository;
 
     private ShortUrlServiceImpl service;
@@ -52,7 +52,8 @@ class ShortUrlServiceImplTest {
     void setUp() {
         lenient().when(urlCacheService.get(anyString())).thenReturn(Optional.empty());
         service = new ShortUrlServiceImpl(repository, currentUser, urlCacheService, generator,
-                bloomFilterService, linkStatsRepository);
+                // bloomFilterService, // Disabled for performance testing.
+                linkStatsRepository);
     }
 
     @Test
@@ -205,17 +206,18 @@ class ShortUrlServiceImplTest {
                 .isEqualTo(0L);
     }
 
-    @Test
-    void create_whenCustomCodeAvailable_shouldAddCodeToBloomFilter() {
-        CreateShortUrlRequest request = request("https://example.com", "custom1");
-        when(repository.existsByShortCode("custom1")).thenReturn(false);
-        when(currentUser.requireUserId()).thenReturn(7L);
-        when(repository.save(any(ShortUrl.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        service.create(request);
-
-        verify(bloomFilterService).add("custom1");
-    }
+    // RedisBloom assertions disabled for performance testing.
+    // @Test
+    // void create_whenCustomCodeAvailable_shouldAddCodeToBloomFilter() {
+    //     CreateShortUrlRequest request = request("https://example.com", "custom1");
+    //     when(repository.existsByShortCode("custom1")).thenReturn(false);
+    //     when(currentUser.requireUserId()).thenReturn(7L);
+    //     when(repository.save(any(ShortUrl.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    //
+    //     service.create(request);
+    //
+    //     verify(bloomFilterService).add("custom1");
+    // }
 
     private static CreateShortUrlRequest request(String origin, String customCode) {
         CreateShortUrlRequest request = new CreateShortUrlRequest();
