@@ -1,0 +1,9 @@
+services:
+  app:
+    cpus: "2.0"
+    mem_limit: 2g
+    mem_reservation: 2g
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      RATELIMIT_ENABLED: "false"
+      JAVA_TOOL_OPTIONS: "-Xms768m -Xmx768m -XX:+UseContainerSupport -Dfile.encoding=UTF-8"

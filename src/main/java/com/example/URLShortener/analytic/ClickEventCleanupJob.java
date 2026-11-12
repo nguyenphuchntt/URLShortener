@@ -8,7 +8,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Component
@@ -24,7 +25,7 @@ public class ClickEventCleanupJob {
     @Transactional
     public void purgeOldClickEvents() {
         try {
-            LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+            Instant cutoff = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
             int deletedCount = clickEventRepository.deleteOlderThan(cutoff);
             log.info("Purged {} click_event rows older than {}", deletedCount, cutoff);
         } catch (Exception e) {

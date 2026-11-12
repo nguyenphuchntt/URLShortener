@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 import static com.example.URLShortener.analytic.AnalyticsStreamConstants.STREAM_KEY;
+import static com.example.URLShortener.analytic.AnalyticsStreamConstants.PAYLOAD_FIELD;
 
 @Slf4j
 @Service
@@ -27,7 +28,7 @@ public class ClickEventPublisher {
                     // stream_key -> {entry_id: {"payload": json}}
                     // string         string     string
                     .in(STREAM_KEY)
-                    .ofMap(Map.of("payload", json));
+                    .ofMap(Map.of(PAYLOAD_FIELD, json));
             redis.opsForStream().add(record);
             log.debug("Published click event for shortUrlId={}", event.getShortUrlId());
         } catch (Exception e) {

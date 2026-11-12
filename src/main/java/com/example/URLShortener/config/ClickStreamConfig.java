@@ -1,6 +1,7 @@
 package com.example.URLShortener.config;
 
 import com.example.URLShortener.analytic.ClickEventConsumer;
+import com.example.URLShortener.analytic.ClickStreamProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,10 +12,12 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamReadRequest;
 
 import java.time.Duration;
 
-import static com.example.URLShortener.analytic.AnalyticsStreamConstants.*;
+import static com.example.URLShortener.analytic.AnalyticsStreamConstants.GROUP;
+import static com.example.URLShortener.analytic.AnalyticsStreamConstants.STREAM_KEY;
 
 @Slf4j
 @Configuration
@@ -24,7 +27,8 @@ public class ClickStreamConfig {
     public StreamMessageListenerContainer<String, ObjectRecord<String, String>> clickStreamContainer(
             RedisConnectionFactory connectionFactory,
             StringRedisTemplate redis,
-            ClickEventConsumer consumer) {
+            ClickEventConsumer consumer,
+            ClickStreamProperties props) {
 
         ensureGroup(redis);
 
@@ -39,64 +43,54 @@ public class ClickStreamConfig {
                         .build();
 
         StreamMessageListenerContainer<String, ObjectRecord<String, String>> container =
-                StreamMessageListenerContainer.create(
-                        connectionFactory,
-                        options
-                );
+                StreamMessageListenerContainer.create(connectionFactory, options);
 
-        container.receive(
-                Consumer.from(GROUP, CONSUMER),
-                StreamOffset.create(
-                        STREAM_KEY,
-                        ReadOffset.lastConsumed()
-                ),
-                consumer
-        );
+        // Only new entries (">") are read here; entries left pending by a failure or a crashed
+        // instance are retried by PendingClickEventReclaimer.
+        StreamReadRequest<String> request = StreamReadRequest
+                .builder(StreamOffset.create(STREAM_KEY, ReadOffset.lastConsumed()))
+                .consumer(Consumer.from(GROUP, props.consumerName()))
+                // ACK manually, only after the DB transaction committed.
+                .autoAcknowledge(false)
+                // The default cancels the subscription on the first error (e.g. a Redis blip),
+                // which silently stops analytics until restart. Keep polling instead.
+                .cancelOnError(t -> false)
+                .errorHandler(t -> {
+                    log.warn("Click stream read failed, will keep polling: {}", t.toString());
+                    if (hasMessage(t, "NOGROUP")) {
+                        // Stream/group was removed (e.g. FLUSHALL): recreate so polling can recover.
+                        ensureGroup(redis);
+                    }
+                })
+                .build();
 
+        container.register(request, consumer);
         container.start();
 
-        log.info(
-                "Click event stream consumer started: stream={}, group={}, consumer={}",
-                STREAM_KEY,
-                GROUP,
-                CONSUMER
-        );
+        log.info("Click event stream consumer started: stream={}, group={}, consumer={}",
+                STREAM_KEY, GROUP, props.consumerName());
 
         return container;
     }
 
     private void ensureGroup(StringRedisTemplate redis) {
         try {
-            redis.opsForStream().createGroup(
-                    STREAM_KEY,
-                    ReadOffset.from("0-0"),
-                    GROUP
-            );
-
-            log.info(
-                    "Created consumer group: group={}, stream={}",
-                    GROUP,
-                    STREAM_KEY
-            );
-
+            redis.opsForStream().createGroup(STREAM_KEY, ReadOffset.from("0-0"), GROUP);
+            log.info("Created consumer group: group={}, stream={}", GROUP, STREAM_KEY);
         } catch (Exception e) {
             // Spring wraps the Lettuce error, so "BUSYGROUP" is on a cause, not e.getMessage()
             // ("Error in execution"). Walk the whole cause chain before deciding to rethrow.
-            if (isBusyGroup(e)) {
-                log.debug(
-                        "Consumer group already exists: group={}, stream={}",
-                        GROUP,
-                        STREAM_KEY
-                );
+            if (hasMessage(e, "BUSYGROUP")) {
+                log.debug("Consumer group already exists: group={}, stream={}", GROUP, STREAM_KEY);
             } else {
                 throw e;
             }
         }
     }
 
-    private static boolean isBusyGroup(Throwable e) {
+    private static boolean hasMessage(Throwable e, String marker) {
         for (Throwable t = e; t != null; t = t.getCause()) {
-            if (t.getMessage() != null && t.getMessage().contains("BUSYGROUP")) {
+            if (t.getMessage() != null && t.getMessage().contains(marker)) {
                 return true;
             }
         }

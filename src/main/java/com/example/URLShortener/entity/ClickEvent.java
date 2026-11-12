@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 
@@ -24,7 +23,8 @@ public class ClickEvent {
     @Column(name = "short_code", nullable = false, length = 20)
     private String shortCode;
 
-    @CreationTimestamp
+    // Set from the stream payload's timestamp (when the redirect happened), not insert time:
+    // a retried event may be persisted minutes later but must keep its original click time.
     @Column(name = "clicked_at", nullable = false, updatable = false)
     private Instant clickedAt;
 

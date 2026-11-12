@@ -2,7 +2,7 @@ package com.example.URLShortener.controller;
 
 import com.example.URLShortener.analytic.ClickEventPayload;
 import com.example.URLShortener.analytic.ClickEventPublisher;
-import com.example.URLShortener.cache.BloomFilterService;
+// import com.example.URLShortener.cache.BloomFilterService; // Disabled for performance testing.
 import com.example.URLShortener.entity.ShortUrl;
 import com.example.URLShortener.exception.ResourceNotFoundException;
 import com.example.URLShortener.service.ShortUrlService;
@@ -36,7 +36,7 @@ public class RedirectController {
 
     private final ShortUrlService shortUrlService;
     private final ClickEventPublisher clickEventPublisher;
-    private final BloomFilterService bloomFilterService;
+    // private final BloomFilterService bloomFilterService; // Disabled for performance testing.
 
     @Operation(
             summary = "Redirect to the original URL (302)",
@@ -65,11 +65,11 @@ public class RedirectController {
             @Parameter(description = "The short code to redirect", example = "u3Kf9a")
             @PathVariable @Size(max = 16) @Pattern(regexp = "^[a-zA-Z0-9]+$") String shortCode,
             HttpServletRequest request) {
-        // Bloom filter check
-        if (!bloomFilterService.mightContain(shortCode)) {
-            log.debug("Bloom filter rejected unknown shortCode={}", shortCode);
-            throw new ResourceNotFoundException("Short code not found");
-        }
+        // Bloom filter check disabled for performance testing.
+        // if (!bloomFilterService.mightContain(shortCode)) {
+        //     log.debug("Bloom filter rejected unknown shortCode={}", shortCode);
+        //     throw new ResourceNotFoundException("Short code not found");
+        // }
         ShortUrl shortUrl = shortUrlService.getByCodeForRedirect(shortCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Short code not found"));
         // Async: publish an event to Redis stream for click analysis
